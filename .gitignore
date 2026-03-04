@@ -1,2 +1,26 @@
 .DS_Store
 .idea/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local envs
+.env
+backend/.env
+backend/.venv/
+
+# Runtime artifacts
+backend/storage/input/*
+backend/storage/intermediate/*
+backend/storage/output/*
+!backend/storage/input/.gitkeep
+!backend/storage/intermediate/.gitkeep
+!backend/storage/output/.gitkeep
+
+# Large local models (keep folder structure only)
+backend/models/rvc/*
+backend/models/xtts_speakers/*
+!backend/models/rvc/.gitkeep
+!backend/models/xtts_speakers/.gitkeep

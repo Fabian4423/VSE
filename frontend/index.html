@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VSE MVP Frontend</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">VSE</p>
+        <h1>Voice Assistant MVP</h1>
+        <p class="sub">
+          Text oder Audio schicken, Stimme auswählen, Ergebnis direkt abspielen.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="row two">
+          <label>
+            API Base URL
+            <input id="apiBase" type="url" value="http://127.0.0.1:8000" />
+          </label>
+          <div class="inline-end">
+            <button id="refreshVoices" class="secondary">Voices neu laden</button>
+          </div>
+        </div>
+
+        <div class="row two">
+          <label>
+            Voice
+            <select id="voiceId"></select>
+          </label>
+          <label>
+            TTS Provider
+            <select id="ttsProvider">
+              <option value="edge">edge</option>
+              <option value="openai">openai</option>
+              <option value="xtts">xtts</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row two">
+          <label>
+            TTS Voice (für edge/openai)
+            <input id="ttsVoice" type="text" value="de-DE-KatjaNeural" />
+          </label>
+          <label>
+            TTS Rate
+            <input id="ttsRate" type="number" value="0" />
+          </label>
+        </div>
+
+        <div class="mode-switch">
+          <label><input type="radio" name="mode" value="text" checked /> Text</label>
+          <label><input type="radio" name="mode" value="audio" /> Audio</label>
+        </div>
+
+        <label id="textWrap">
+          Input Text
+          <textarea id="textInput" rows="5" placeholder="Sag etwas..."></textarea>
+        </label>
+
+        <label id="audioWrap" class="hidden">
+          Input Audio
+          <input id="audioInput" type="file" accept="audio/*" />
+        </label>
+
+        <div class="actions">
+          <button id="runBtn">Assistant Respond</button>
+        </div>
+      </section>
+
+      <section class="panel result">
+        <h2>Ergebnis</h2>
+        <p id="status">Bereit.</p>
+        <p><strong>Input:</strong> <span id="inputText">-</span></p>
+        <p><strong>Antwort:</strong> <span id="responseText">-</span></p>
+        <audio id="audioPlayer" controls></audio>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
+
