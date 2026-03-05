@@ -63,7 +63,7 @@ def get_settings() -> Settings:
             os.getenv("APPLIO_PYTHON", "/Users/fabianprimus/applio/Applio/.venv/bin/python")
         )
         .expanduser()
-        .resolve(),
+        ,
         applio_timeout_seconds=int(os.getenv("APPLIO_TIMEOUT_SECONDS", "600")),
         storage_root=Path(os.getenv("STORAGE_ROOT", str(BACKEND_ROOT / "storage"))).expanduser().resolve(),
         rvc_model_root=Path(os.getenv("RVC_MODEL_ROOT", str(BACKEND_ROOT / "models" / "rvc")))
@@ -77,4 +77,3 @@ def get_settings() -> Settings:
         xtts_model_name=os.getenv("XTTS_MODEL_NAME", "tts_models/multilingual/multi-dataset/xtts_v2"),
         xtts_device=os.getenv("XTTS_DEVICE", "cpu"),
     )
-

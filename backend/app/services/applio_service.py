@@ -106,8 +106,11 @@ class ApplioService:
 
     def _run(self, cmd: list[str]) -> None:
         logger.info("Running Applio command: %s", " ".join(cmd))
+        # Python 3.12 removed distutils from stdlib. Applio imports distutils.util
+        # at module import time, so we inject a tiny compatible module and run core.py.
+        shimmed_cmd = [cmd[0], "-c", _CORE_RUNNER_SHIM, *cmd[2:]]
         process = subprocess.run(
-            cmd,
+            shimmed_cmd,
             cwd=self.settings.applio_root,
             capture_output=True,
             text=True,
@@ -126,3 +129,18 @@ class ApplioService:
         if not path.exists() or path.stat().st_size <= 0:
             raise RuntimeError(f"Applio produced no output audio at {path}")
 
+
+_CORE_RUNNER_SHIM = (
+    "import runpy,sys,types;"
+    "distutils_mod=types.ModuleType('distutils');"
+    "util_mod=types.ModuleType('distutils.util');"
+    "util_mod.strtobool=lambda val: "
+    "(1 if val.lower() in ('y','yes','t','true','on','1') else "
+    "0 if val.lower() in ('n','no','f','false','off','0') else "
+    "(_ for _ in ()).throw(ValueError('invalid truth value %r' % (val,))));"
+    "distutils_mod.util=util_mod;"
+    "sys.modules['distutils']=distutils_mod;"
+    "sys.modules['distutils.util']=util_mod;"
+    "sys.argv=['core.py']+sys.argv[1:];"
+    "runpy.run_path('core.py',run_name='__main__')"
+)
