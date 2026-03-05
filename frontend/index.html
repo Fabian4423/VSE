@@ -25,8 +25,8 @@
       <section class="panel">
         <div class="row two">
           <label>
-            API Base URL
-            <input id="apiBase" type="url" value="http://127.0.0.1:8000" />
+            Voice
+            <select id="voiceId"></select>
           </label>
           <div class="inline-end">
             <button id="refreshVoices" class="secondary">Voices neu laden</button>
@@ -35,22 +35,7 @@
 
         <div class="row two">
           <label>
-            Voice
-            <select id="voiceId"></select>
-          </label>
-          <label>
-            TTS Provider
-            <select id="ttsProvider">
-              <option value="edge">edge</option>
-              <option value="openai">openai</option>
-              <option value="xtts">xtts</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="row two">
-          <label>
-            TTS Voice (für edge/openai)
+            TTS Voice (Applio / Edge)
             <input id="ttsVoice" type="text" value="de-DE-KatjaNeural" />
           </label>
           <label>
@@ -75,7 +60,7 @@
         </label>
 
         <div class="actions">
-          <button id="runBtn">Assistant Respond</button>
+          <button id="runBtn">Audio erzeugen</button>
         </div>
       </section>
 
