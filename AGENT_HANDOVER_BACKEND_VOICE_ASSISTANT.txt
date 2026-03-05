@@ -63,9 +63,9 @@ Stand: 2026-03-02
   - Wenn `tts_file` nicht existiert, wird `tts_text` verwendet (laut tts.py).
 
 6) Kritische Voraussetzungen fuer Voice Conversion
-- Fuer echte Voice Conversion werden ein Voice-Model und Index benoetigt:
+- Fuer Voice Conversion wird mindestens ein Voice-Model benoetigt:
   - .pth (RVC voice model)
-  - .index (Feature index)
+- .index (Feature index) ist optional, verbessert aber oft die Stimm-Aehnlichkeit.
 - Diese sind NICHT automatisch als nutzbares Zielstimmenmodell im VSE-Projekt vorhanden.
 - Der Agent muss einen klaren Modellpfad-Standard definieren, z. B.:
   - backend/models/rvc/<voice_id>/model.pth
@@ -73,7 +73,7 @@ Stand: 2026-03-02
 - Wichtig fuer UI-Integration: Zielstimme muss variabel waehlbar sein.
   - UI sendet nur `voice_id` (keine freien Dateipfade).
   - Backend mappt `voice_id` auf obige Modellpfade.
-  - Unbekannte `voice_id` oder fehlende Dateien -> sauberer 4xx-Fehler mit Hinweis.
+  - Unbekannte `voice_id` oder fehlende `model.pth` -> sauberer 4xx-Fehler mit Hinweis.
 
 7) Zielarchitektur Backend (MVP)
 - Empfohlenes Stack:
@@ -129,7 +129,8 @@ Stand: 2026-03-02
     - EdgeTTS
     - XTTS (lokaler Provider)
   - VoiceCatalog Service:
-    - Scannt `backend/models/rvc/<voice_id>/` und validiert `model.pth` + `model.index`
+    - Scannt `backend/models/rvc/<voice_id>/` und validiert `model.pth`
+    - `model.index` nur optional validieren und als verfuegbar/nicht-verfuegbar markieren
     - Stellt Daten fuer `GET /voices` und `voice_id`-Validierung bereit
   - Applio Service:
     - subprocess wrapper fuer `core.py infer` und optional `core.py tts`
@@ -178,7 +179,7 @@ Stand: 2026-03-02
 - Vor Aufruf pruefen:
   - input existiert
   - pth existiert
-  - index existiert
+  - index optional: falls nicht vorhanden, mit `--index_path ""` und `--index_rate 0` laufen
   - output parent dir existiert
 - Nach Aufruf pruefen:
   - exit code == 0
@@ -200,7 +201,7 @@ Stand: 2026-03-02
 - Basis-Tests laufen gruen.
 
 13) Bekannte Risiken / Stolpersteine
-- Ohne .pth + .index kein echtes Voice-Cloning moeglich.
+- Ohne .index funktioniert Conversion meist trotzdem, aber haeufig mit geringerer Stimm-Aehnlichkeit.
 - Erster Applio-Lauf kann lange dauern (Modelldownload).
 - Große Dateien und CPU/GPU Last koennen Timeouts verursachen.
 - Netzwerkzugriff auf Hugging Face muss moeglich sein (initial).
