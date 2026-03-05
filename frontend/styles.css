@@ -136,6 +136,27 @@ button.secondary {
   background: #334155;
 }
 
+.button-link {
+  display: inline-block;
+  border-radius: 12px;
+  background: #334155;
+  color: #fff;
+  padding: 0.68rem 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 130ms ease, background 130ms ease;
+}
+
+.button-link:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+}
+
+.button-link.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .hidden {
   display: none;
 }
@@ -163,4 +184,3 @@ audio {
     transform: translateY(0);
   }
 }
-

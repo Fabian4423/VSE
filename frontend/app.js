@@ -13,6 +13,8 @@ const statusEl = document.getElementById("status");
 const inputTextEl = document.getElementById("inputText");
 const responseTextEl = document.getElementById("responseText");
 const audioPlayerEl = document.getElementById("audioPlayer");
+const downloadBtnEl = document.getElementById("downloadBtn");
+let latestDownload = null;
 
 function getApiBase() {
   return apiBaseEl.value.replace(/\/+$/, "");
@@ -21,6 +23,21 @@ function getApiBase() {
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
   statusEl.classList.toggle("error", isError);
+}
+
+function setDownloadButton(url = "", filename = "vse-output.wav") {
+  if (!url) {
+    downloadBtnEl.href = "#";
+    downloadBtnEl.setAttribute("aria-disabled", "true");
+    downloadBtnEl.classList.add("disabled");
+    latestDownload = null;
+    return;
+  }
+  downloadBtnEl.href = url;
+  downloadBtnEl.download = filename;
+  downloadBtnEl.setAttribute("aria-disabled", "false");
+  downloadBtnEl.classList.remove("disabled");
+  latestDownload = { url, filename };
 }
 
 function updateMode() {
@@ -82,6 +99,7 @@ async function runAssistant() {
   setStatus("Verarbeite Anfrage...");
   audioPlayerEl.removeAttribute("src");
   audioPlayerEl.load();
+  setDownloadButton();
 
   try {
     const res = await fetch(`${getApiBase()}/assistant/respond`, {
@@ -104,8 +122,11 @@ async function runAssistant() {
 
     audioPlayerEl.src = audioUrl;
     audioPlayerEl.load();
+    const fileName = (data.output_audio_path || "").split("/").pop() || "vse-output.wav";
+    setDownloadButton(audioUrl, fileName);
     setStatus("Fertig.");
   } catch (error) {
+    setDownloadButton();
     setStatus(String(error.message || error), true);
   } finally {
     runBtnEl.disabled = false;
@@ -124,6 +145,31 @@ runBtnEl.addEventListener("click", () => {
   runAssistant().catch((error) => setStatus(String(error.message || error), true));
 });
 
-updateMode();
-loadVoices().catch((error) => setStatus(String(error.message || error), true));
+downloadBtnEl.addEventListener("click", async (event) => {
+  event.preventDefault();
+  if (!latestDownload) return;
 
+  try {
+    setStatus("Download startet...");
+    const res = await fetch(latestDownload.url);
+    if (!res.ok) {
+      throw new Error(`Download fehlgeschlagen (${res.status})`);
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = latestDownload.filename || "vse-output.wav";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus("Download fertig.");
+  } catch (error) {
+    setStatus(String(error.message || error), true);
+  }
+});
+
+updateMode();
+setDownloadButton();
+loadVoices().catch((error) => setStatus(String(error.message || error), true));
