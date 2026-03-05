@@ -12,7 +12,7 @@ bereit.
 ## Empfohlener Start (Single Process)
 
 ```bash
-cd /Users/fabianprimus/workspaces/codex/projects/VSE
+cd /path/to/VSE
 python3 local_ui_server.py --host 127.0.0.1 --port 5500
 ```
 
@@ -20,7 +20,7 @@ Dann öffnen: `http://127.0.0.1:5500`
 
 ## Voraussetzungen / Konfiguration
 
-- Applio installiert (z. B. `/Users/fabianprimus/applio/Applio`)
+- Applio installiert (z. B. `/path/to/Applio`)
 - Mindestens ein RVC-Modell unter `backend/models/rvc/<voice_id>/model.pth`
 - Pfade in `backend/.env` (oder `.env.example`) prüfen:
   - `APPLIO_ROOT` (Applio-Projektpfad)

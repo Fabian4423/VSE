@@ -8,7 +8,7 @@ Es spricht ausschließlich mit der lokalen API desselben Prozesses:
 ## Start
 
 ```bash
-cd /Users/fabianprimus/workspaces/codex/projects/VSE
+cd /path/to/VSE
 python3 local_ui_server.py --host 127.0.0.1 --port 5500
 ```
 
