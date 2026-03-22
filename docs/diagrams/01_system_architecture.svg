@@ -1,10 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="'Segoe UI', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 460" font-family="'Segoe UI', Arial, sans-serif">
   <defs>
-    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#475569"/>
-    </marker>
-    <marker id="arrowLeft" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-      <polygon points="10 0, 0 3.5, 10 7" fill="#475569"/>
     </marker>
     <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
@@ -12,105 +9,113 @@
   </defs>
 
   <!-- Background -->
-  <rect width="960" height="520" rx="12" fill="#f8fafc"/>
+  <rect width="1100" height="460" rx="12" fill="#f8fafc"/>
 
   <!-- Title -->
-  <text x="480" y="38" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">Systemarchitektur: CLI-Bridge-Ansatz</text>
+  <text x="550" y="35" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">Systemarchitektur: Zweistufige CLI-Bridge</text>
 
-  <!-- === Client Box === -->
-  <rect x="40" y="70" width="200" height="160" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="140" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#0c4a6e">Browser (Client)</text>
-  <line x1="60" y1="112" x2="220" y2="112" stroke="#0284c7" stroke-width="0.8" opacity="0.4"/>
-  <text x="140" y="135" text-anchor="middle" font-size="11" fill="#334155">HTML / CSS / JS</text>
-  <text x="140" y="155" text-anchor="middle" font-size="11" fill="#334155">Statische Dateien</text>
-  <text x="140" y="175" text-anchor="middle" font-size="11" fill="#334155">Keine Frameworks</text>
-  <text x="140" y="200" text-anchor="middle" font-size="10" fill="#64748b">Vanilla JavaScript</text>
+  <!-- VM Zone -->
+  <rect x="218" y="58" width="232" height="182" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.8"/>
+  <text x="334" y="73" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">VM</text>
 
-  <!-- === Bridge Box === -->
-  <rect x="340" y="70" width="260" height="160" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="470" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#78350f">local_ui_server.py (Bridge)</text>
-  <line x1="360" y1="112" x2="580" y2="112" stroke="#d97706" stroke-width="0.8" opacity="0.4"/>
-  <text x="470" y="135" text-anchor="middle" font-size="11" fill="#334155">ThreadingHTTPServer</text>
-  <text x="470" y="158" text-anchor="middle" font-size="11" fill="#334155">Protokollübersetzung:</text>
-  <text x="470" y="178" text-anchor="middle" font-size="11" fill="#334155">JSON → CLI-Argumente</text>
-  <text x="470" y="200" text-anchor="middle" font-size="10" fill="#64748b">Python Standardbibliothek</text>
-  <text x="470" y="218" text-anchor="middle" font-size="10" fill="#64748b">Keine ext. Abhängigkeiten</text>
+  <!-- Host Zone -->
+  <rect x="478" y="58" width="592" height="182" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.8"/>
+  <text x="774" y="73" text-anchor="middle" font-size="10" font-weight="700" fill="#14532d">Host-System (GPU)</text>
 
-  <!-- === Applio Box === -->
-  <rect x="700" y="70" width="220" height="160" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="810" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#14532d">Applio CLI (Engine)</text>
-  <line x1="720" y1="112" x2="900" y2="112" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
-  <text x="810" y="135" text-anchor="middle" font-size="11" fill="#334155">Text-to-Speech (TTS)</text>
-  <text x="810" y="155" text-anchor="middle" font-size="11" fill="#334155">Voice Conversion (RVC)</text>
-  <text x="810" y="178" text-anchor="middle" font-size="11" fill="#334155">core.py tts / infer</text>
-  <text x="810" y="200" text-anchor="middle" font-size="10" fill="#64748b">GPU/CPU-intensiv</text>
-  <text x="810" y="218" text-anchor="middle" font-size="10" fill="#64748b">Eigener Subprozess</text>
+  <!-- Browser Box -->
+  <rect x="18" y="78" width="180" height="148" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="108" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#0c4a6e">Browser (Client)</text>
+  <line x1="36" y1="114" x2="180" y2="114" stroke="#0284c7" stroke-width="0.8" opacity="0.4"/>
+  <text x="108" y="135" text-anchor="middle" font-size="11" fill="#334155">HTML / CSS / JS</text>
+  <text x="108" y="154" text-anchor="middle" font-size="11" fill="#334155">Vanilla JavaScript</text>
+  <text x="108" y="175" text-anchor="middle" font-size="10" fill="#64748b">Keine Frameworks</text>
+  <text x="108" y="196" text-anchor="middle" font-size="10" fill="#64748b">Beliebiges Gerät</text>
 
-  <!-- === Arrows Client ↔ Bridge === -->
-  <!-- Request -->
-  <line x1="240" y1="130" x2="340" y2="130" stroke="#475569" stroke-width="1.5" marker-end="url(#arrowRight)"/>
-  <text x="290" y="122" text-anchor="middle" font-size="9" fill="#475569" font-weight="600">POST /api/run</text>
-  <text x="290" y="136" text-anchor="middle" font-size="8" fill="#64748b">{ text, voice_id }</text>
+  <!-- local_ui_server.py Box -->
+  <rect x="232" y="78" width="202" height="148" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="333" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#78350f">local_ui_server.py</text>
+  <line x1="250" y1="110" x2="416" y2="110" stroke="#d97706" stroke-width="0.8" opacity="0.4"/>
+  <text x="333" y="131" text-anchor="middle" font-size="11" fill="#334155">ThreadingHTTPServer</text>
+  <text x="333" y="150" text-anchor="middle" font-size="11" fill="#334155">Frontend-Hosting</text>
+  <text x="333" y="169" text-anchor="middle" font-size="11" fill="#334155">API-Proxy zum Runner</text>
+  <text x="333" y="194" text-anchor="middle" font-size="10" fill="#64748b">Port 5500 · VM</text>
 
-  <!-- Response -->
-  <line x1="340" y1="170" x2="240" y2="170" stroke="#475569" stroke-width="1.5" marker-end="url(#arrowLeft)"/>
-  <text x="290" y="164" text-anchor="middle" font-size="9" fill="#475569" font-weight="600">JSON Response</text>
-  <text x="290" y="186" text-anchor="middle" font-size="8" fill="#64748b">{ output_audio_url }</text>
+  <!-- applio_runner.py Box -->
+  <rect x="492" y="78" width="210" height="148" rx="10" fill="#fde68a" stroke="#b45309" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="597" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#78350f">applio_runner.py</text>
+  <line x1="510" y1="110" x2="684" y2="110" stroke="#b45309" stroke-width="0.8" opacity="0.4"/>
+  <text x="597" y="131" text-anchor="middle" font-size="11" fill="#334155">ThreadingHTTPServer</text>
+  <text x="597" y="150" text-anchor="middle" font-size="11" fill="#334155">JSON → CLI-Argumente</text>
+  <text x="597" y="169" text-anchor="middle" font-size="11" fill="#334155">Base64 Audio-Transport</text>
+  <text x="597" y="194" text-anchor="middle" font-size="10" fill="#64748b">Port 5600 · Host</text>
 
-  <!-- === Arrows Bridge ↔ Applio === -->
-  <!-- CLI call -->
-  <line x1="600" y1="130" x2="700" y2="130" stroke="#475569" stroke-width="1.5" marker-end="url(#arrowRight)"/>
-  <text x="650" y="122" text-anchor="middle" font-size="9" fill="#475569" font-weight="600">subprocess</text>
-  <text x="650" y="136" text-anchor="middle" font-size="8" fill="#64748b">python core.py tts ...</text>
+  <!-- Applio CLI Box -->
+  <rect x="732" y="78" width="210" height="148" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="837" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Applio CLI (Engine)</text>
+  <line x1="750" y1="110" x2="924" y2="110" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
+  <text x="837" y="131" text-anchor="middle" font-size="11" fill="#334155">Text-to-Speech (TTS)</text>
+  <text x="837" y="150" text-anchor="middle" font-size="11" fill="#334155">Voice Conversion (RVC)</text>
+  <text x="837" y="169" text-anchor="middle" font-size="11" fill="#334155">core.py tts / infer</text>
+  <text x="837" y="194" text-anchor="middle" font-size="10" fill="#64748b">GPU/CPU-intensiv</text>
 
-  <!-- Result -->
-  <line x1="700" y1="170" x2="600" y2="170" stroke="#475569" stroke-width="1.5" marker-end="url(#arrowLeft)"/>
-  <text x="650" y="164" text-anchor="middle" font-size="9" fill="#475569" font-weight="600">Datei-Output</text>
-  <text x="650" y="186" text-anchor="middle" font-size="8" fill="#64748b">output/&lt;uuid&gt;.wav</text>
+  <!-- Arrow: Browser → UI-Server -->
+  <line x1="198" y1="132" x2="232" y2="132" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="215" y="124" text-anchor="middle" font-size="8" font-weight="600" fill="#475569">POST /api/run</text>
+  <!-- Arrow: UI-Server → Browser -->
+  <line x1="232" y1="162" x2="198" y2="162" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="215" y="178" text-anchor="middle" font-size="8" fill="#64748b">audio_url</text>
+  <!-- Badge -->
+  <rect x="184" y="102" width="62" height="15" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="215" y="113" text-anchor="middle" font-size="8" font-weight="600" fill="#1e40af">HTTP/JSON</text>
 
-  <!-- === Protocol Labels === -->
-  <rect x="255" y="88" width="70" height="18" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="0.8"/>
-  <text x="290" y="101" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af">HTTP/JSON</text>
+  <!-- Arrow: UI-Server → Runner -->
+  <line x1="434" y1="132" x2="492" y2="132" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="463" y="124" text-anchor="middle" font-size="8" font-weight="600" fill="#475569">POST /tts</text>
+  <!-- Arrow: Runner → UI-Server -->
+  <line x1="492" y1="162" x2="434" y2="162" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="463" y="178" text-anchor="middle" font-size="8" fill="#64748b">Base64 WAV</text>
+  <!-- Badge -->
+  <rect x="430" y="102" width="66" height="15" rx="3" fill="#fef3c7" stroke="#d97706" stroke-width="0.8"/>
+  <text x="463" y="113" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">HTTP/Base64</text>
 
-  <rect x="618" y="88" width="64" height="18" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="0.8"/>
-  <text x="650" y="101" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46">CLI/File</text>
+  <!-- Arrow: Runner → Applio -->
+  <line x1="702" y1="132" x2="732" y2="132" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="717" y="124" text-anchor="middle" font-size="8" font-weight="600" fill="#475569">subprocess</text>
+  <!-- Arrow: Applio → Runner -->
+  <line x1="732" y1="162" x2="702" y2="162" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="717" y="178" text-anchor="middle" font-size="8" fill="#64748b">temp WAV</text>
+  <!-- Badge -->
+  <rect x="694" y="102" width="46" height="15" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="0.8"/>
+  <text x="717" y="113" text-anchor="middle" font-size="8" font-weight="600" fill="#065f46">CLI/File</text>
 
-  <!-- === Storage Section === -->
-  <rect x="340" y="290" width="260" height="190" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="470" y="318" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Dateisystem (Storage)</text>
-  <line x1="360" y1="328" x2="580" y2="328" stroke="#94a3b8" stroke-width="0.8" opacity="0.4"/>
+  <!-- Storage Box (VM) -->
+  <rect x="232" y="278" width="202" height="148" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="333" y="302" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">Storage (VM)</text>
+  <line x1="250" y1="312" x2="416" y2="312" stroke="#94a3b8" stroke-width="0.8" opacity="0.4"/>
+  <rect x="252" y="321" width="162" height="24" rx="5" fill="#e2e8f0"/>
+  <text x="260" y="337" font-size="10" fill="#334155" font-family="monospace">storage/output/</text>
+  <text x="333" y="366" text-anchor="middle" font-size="10" fill="#64748b">UUID-basierte WAV-Dateien</text>
+  <text x="333" y="384" text-anchor="middle" font-size="10" fill="#64748b">Browser-Download</text>
+  <text x="333" y="402" text-anchor="middle" font-size="10" fill="#64748b">GET /storage/output/*.wav</text>
 
-  <!-- Storage folders -->
-  <rect x="365" y="340" width="210" height="28" rx="5" fill="#e2e8f0"/>
-  <text x="375" y="359" font-size="11" fill="#334155" font-family="monospace">storage/input/</text>
-  <text x="565" y="359" text-anchor="end" font-size="9" fill="#64748b">Uploads</text>
+  <!-- Models Box (Host) -->
+  <rect x="492" y="278" width="210" height="148" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="597" y="302" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Stimmmodelle (Host)</text>
+  <line x1="510" y1="312" x2="684" y2="312" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
+  <text x="597" y="334" text-anchor="middle" font-size="11" fill="#334155" font-family="monospace">models/rvc/&lt;voice_id&gt;/</text>
+  <text x="597" y="356" text-anchor="middle" font-size="11" fill="#334155">*.pth (obligatorisch)</text>
+  <text x="597" y="376" text-anchor="middle" font-size="11" fill="#334155">*.index (optional)</text>
+  <text x="597" y="398" text-anchor="middle" font-size="10" fill="#64748b">Convention over Configuration</text>
 
-  <rect x="365" y="376" width="210" height="28" rx="5" fill="#e2e8f0"/>
-  <text x="375" y="395" font-size="11" fill="#334155" font-family="monospace">storage/intermediate/</text>
-  <text x="565" y="395" text-anchor="end" font-size="9" fill="#64748b">TTS-Roh</text>
+  <!-- Arrow: UI-Server → Storage -->
+  <line x1="333" y1="226" x2="333" y2="278" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="345" y="256" font-size="9" fill="#475569">speichert WAV</text>
 
-  <rect x="365" y="412" width="210" height="28" rx="5" fill="#e2e8f0"/>
-  <text x="375" y="431" font-size="11" fill="#334155" font-family="monospace">storage/output/</text>
-  <text x="565" y="431" text-anchor="end" font-size="9" fill="#64748b">Finale WAV</text>
+  <!-- Arrow: Runner → Models -->
+  <line x1="597" y1="226" x2="597" y2="278" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="609" y="256" font-size="9" fill="#475569">liest Modelle</text>
 
-  <!-- Models Section -->
-  <rect x="700" y="290" width="220" height="130" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="810" y="318" text-anchor="middle" font-size="13" font-weight="700" fill="#14532d">Stimmmodelle (RVC)</text>
-  <line x1="720" y1="328" x2="900" y2="328" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
-  <text x="810" y="352" text-anchor="middle" font-size="11" fill="#334155" font-family="monospace">models/rvc/&lt;voice_id&gt;/</text>
-  <text x="810" y="376" text-anchor="middle" font-size="11" fill="#334155">model.pth (obligatorisch)</text>
-  <text x="810" y="396" text-anchor="middle" font-size="11" fill="#334155">model.index (optional)</text>
-  <text x="810" y="416" text-anchor="middle" font-size="10" fill="#64748b">Convention over Configuration</text>
-
-  <!-- Arrows to Storage -->
-  <line x1="470" y1="230" x2="470" y2="290" stroke="#475569" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrowRight)"/>
-  <text x="480" y="265" font-size="9" fill="#475569">liest/schreibt</text>
-
-  <!-- Arrow Bridge to Models -->
-  <line x1="600" y1="220" x2="810" y2="290" stroke="#475569" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#arrowRight)"/>
-  <text x="720" y="248" font-size="9" fill="#475569">lädt Modelle</text>
-
-  <!-- Arrow Client to Storage (audio download) -->
-  <path d="M140,230 L140,390 L340,390" fill="none" stroke="#475569" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#arrowRight)"/>
-  <text x="160" y="340" font-size="9" fill="#475569" transform="rotate(-90,160,340)">GET /storage/*</text>
+  <!-- Arrow: Browser → Storage (GET /storage/*) -->
+  <path d="M108,226 L108,352 L232,352" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="120" y="300" font-size="9" fill="#0284c7">GET /storage/*</text>
 </svg>
