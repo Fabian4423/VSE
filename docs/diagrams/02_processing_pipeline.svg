@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#475569"/>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="560" rx="12" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">Verarbeitungspipeline: Text-Modus vs. Audio-Modus</text>
+
+  <!-- ====== TEXT MODE (left) ====== -->
+  <text x="225" y="75" text-anchor="middle" font-size="15" font-weight="700" fill="#1e40af">Text-Modus</text>
+
+  <!-- Step 1: Text Input -->
+  <rect x="100" y="95" width="250" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="225" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">Texteingabe</text>
+  <text x="225" y="134" text-anchor="middle" font-size="10" fill="#475569">"Hallo, dies ist ein Test."</text>
+
+  <!-- Arrow -->
+  <line x1="225" y1="145" x2="225" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Bridge translates -->
+  <rect x="100" y="175" width="250" height="50" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="225" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">Bridge: JSON → CLI</text>
+  <text x="225" y="214" text-anchor="middle" font-size="10" fill="#475569">python core.py tts --tts_text ...</text>
+
+  <!-- Arrow -->
+  <line x1="225" y1="225" x2="225" y2="255" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: TTS -->
+  <rect x="100" y="255" width="250" height="60" rx="8" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="225" y="280" text-anchor="middle" font-size="12" font-weight="600" fill="#0c4a6e">Stufe 1: Text-to-Speech</text>
+  <text x="225" y="296" text-anchor="middle" font-size="10" fill="#475569">Edge-TTS (de-DE-KatjaNeural)</text>
+  <text x="225" y="308" text-anchor="middle" font-size="9" fill="#94a3b8">→ intermediate/&lt;uuid&gt;.wav</text>
+
+  <!-- Arrow -->
+  <line x1="225" y1="315" x2="225" y2="345" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ====== AUDIO MODE (right) ====== -->
+  <text x="675" y="75" text-anchor="middle" font-size="15" font-weight="700" fill="#7c3aed">Audio-Modus</text>
+
+  <!-- Step 1: Audio Upload -->
+  <rect x="550" y="95" width="250" height="50" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="675" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#4c1d95">Audio-Upload</text>
+  <text x="675" y="134" text-anchor="middle" font-size="10" fill="#475569">Base64-kodierte Audiodatei</text>
+
+  <!-- Arrow -->
+  <line x1="675" y1="145" x2="675" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Bridge translates -->
+  <rect x="550" y="175" width="250" height="50" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="675" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">Bridge: Decode + Speichern</text>
+  <text x="675" y="214" text-anchor="middle" font-size="10" fill="#475569">→ input/&lt;uuid&gt;.wav</text>
+
+  <!-- Arrow -->
+  <line x1="675" y1="225" x2="675" y2="255" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Skip TTS marker -->
+  <rect x="550" y="255" width="250" height="60" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="675" y="283" text-anchor="middle" font-size="12" fill="#94a3b8">Stufe 1 entfällt</text>
+  <text x="675" y="300" text-anchor="middle" font-size="10" fill="#94a3b8">(Audio bereits vorhanden)</text>
+
+  <!-- Arrow -->
+  <line x1="675" y1="315" x2="675" y2="345" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ====== SHARED: RVC Voice Conversion ====== -->
+  <rect x="100" y="345" width="700" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2" filter="url(#shadow)"/>
+  <text x="450" y="373" text-anchor="middle" font-size="14" font-weight="700" fill="#14532d">Stufe 2: RVC Voice Conversion</text>
+  <text x="450" y="393" text-anchor="middle" font-size="11" fill="#334155">Methode: rmvpe | Embedder: contentvec | Format: WAV</text>
+  <text x="450" y="408" text-anchor="middle" font-size="10" fill="#64748b">Neutrale Stimme → gewähltes Stimmmodell (model.pth + optional model.index)</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="415" x2="450" y2="455" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output -->
+  <rect x="275" y="455" width="350" height="55" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="450" y="480" text-anchor="middle" font-size="13" font-weight="700" fill="#14532d">Finale Audiodatei</text>
+  <text x="450" y="498" text-anchor="middle" font-size="11" fill="#334155" font-family="monospace">output/&lt;uuid&gt;.wav</text>
+
+  <!-- Arrow to download -->
+  <line x1="450" y1="510" x2="450" y2="540" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="450" y="553" text-anchor="middle" font-size="11" fill="#475569" font-weight="600">→ Download im Browser via GET /storage/output/&lt;uuid&gt;.wav</text>
+</svg>
