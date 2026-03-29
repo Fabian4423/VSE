@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import mimetypes
 import os
@@ -11,7 +10,7 @@ import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib import request as _urllib_req
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
 
@@ -35,7 +34,7 @@ def _load_env_file(path: Path) -> None:
 
 _load_env_file(BACKEND_ROOT / ".env")
 
-RUNNER_URL = os.getenv("APPLIO_RUNNER_URL", "http://192.168.100.64:5600").rstrip("/")
+CHATTERBOX_URL = os.getenv("CHATTERBOX_URL", "http://192.168.100.64:8004").rstrip("/")
 STORAGE_ROOT = Path(
     os.getenv("STORAGE_ROOT", str(BACKEND_ROOT / "storage"))
 ).expanduser().resolve()
@@ -43,30 +42,43 @@ STORAGE_ROOT = Path(
 OUTPUT_DIR = STORAGE_ROOT / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+CHATTERBOX_VOICES = [
+    "Abigail", "Adrian", "Alexander", "Alice", "Austin", "Axel",
+    "Connor", "Cora", "Elena", "Eli", "Emily", "Everett",
+    "Gabriel", "Gianna", "Henry", "Ian", "Jade", "Jeremiah",
+    "Jordan", "Julian", "Layla", "Leonardo", "Michael", "Miles",
+    "Olivia", "Ryan", "Taylor", "Thomas",
+]
 
-def _runner_get(path: str) -> dict:
-    req = _urllib_req.Request(f"{RUNNER_URL}{path}")
-    with _urllib_req.urlopen(req, timeout=10) as resp:
-        return json.loads(resp.read().decode("utf-8"))
 
-
-def _runner_post(path: str, payload: dict) -> dict:
-    data = json.dumps(payload).encode("utf-8")
+def _chatterbox_tts(text: str, voice_id: str) -> bytes:
+    """Send text to Chatterbox TTS and return WAV bytes."""
+    payload = json.dumps({
+        "text": text,
+        "voice_mode": "predefined",
+        "predefined_voice_id": f"{voice_id}.wav",
+    }).encode("utf-8")
     req = _urllib_req.Request(
-        f"{RUNNER_URL}{path}",
-        data=data,
+        f"{CHATTERBOX_URL}/tts",
+        data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with _urllib_req.urlopen(req, timeout=700) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    with _urllib_req.urlopen(req, timeout=120) as resp:
+        return resp.read()
 
 
-def _list_voices() -> list[dict]:
+def _chatterbox_health() -> bool:
+    """Check if Chatterbox TTS service is reachable."""
     try:
-        return _runner_get("/voices").get("voices", [])
+        req = _urllib_req.Request(f"{CHATTERBOX_URL}/")
+        with _urllib_req.urlopen(req, timeout=5):
+            pass
+        return True
+    except HTTPError:
+        return True  # Server reachable, just returned non-2xx
     except Exception:
-        return []
+        return False
 
 
 def _to_public_url(path: Path) -> str:
@@ -92,7 +104,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
         path = parsed.path
 
         if path == "/api/voices":
-            _json_response(self, 200, {"voices": _list_voices()})
+            voices = [{"voice_id": v} for v in CHATTERBOX_VOICES]
+            _json_response(self, 200, {"voices": voices})
             return
 
         if path.startswith("/storage/"):
@@ -139,71 +152,43 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
         voice_id = str(payload.get("voice_id", "")).strip()
         text = str(payload.get("text", "")).strip()
-        tts_voice = str(payload.get("tts_voice", "de-DE-KatjaNeural")).strip() or "de-DE-KatjaNeural"
-        tts_rate = int(payload.get("tts_rate", 0))
-        audio_base64 = str(payload.get("audio_base64", "")).strip()
-        audio_name = str(payload.get("audio_name", "input.wav")).strip() or "input.wav"
 
         if not voice_id:
             _json_response(self, 422, {"detail": "voice_id is required."})
+            return
+        if not text:
+            _json_response(self, 422, {"detail": "text is required."})
+            return
+        if voice_id not in CHATTERBOX_VOICES:
+            _json_response(self, 404, {"detail": f"Unbekannte Stimme: {voice_id}"})
             return
 
         token = uuid.uuid4().hex
         output_path = OUTPUT_DIR / f"{token}.wav"
 
         try:
-            if audio_base64:
-                # Audio-Modus: an Runner /infer schicken
-                result = _runner_post("/infer", {
-                    "voice_id": voice_id,
-                    "audio_base64": audio_base64,
-                })
-                input_mode = "audio"
-                input_text = text or "[audio input]"
-                response_text = "Audio direkt konvertiert."
-            elif text:
-                # Text-Modus: an Runner /tts schicken
-                result = _runner_post("/tts", {
-                    "voice_id": voice_id,
-                    "text": text,
-                    "tts_voice": tts_voice,
-                    "tts_rate": tts_rate,
-                })
-                input_mode = "text"
-                input_text = text
-                response_text = text
-            else:
-                _json_response(self, 422, {"detail": "Provide either text or audio_base64."})
-                return
-
+            audio_bytes = _chatterbox_tts(text, voice_id)
+            output_path.write_bytes(audio_bytes)
         except URLError as exc:
-            _json_response(self, 502, {"detail": f"Runner nicht erreichbar: {exc}"})
+            _json_response(self, 502, {"detail": f"Chatterbox TTS nicht erreichbar: {exc}"})
             return
         except Exception as exc:
             _json_response(self, 500, {"detail": str(exc)})
             return
 
-        # Audio-Daten aus Runner-Antwort lokal speichern
-        try:
-            audio_bytes = base64.b64decode(result["audio_base64"])
-            output_path.write_bytes(audio_bytes)
-        except Exception as exc:
-            _json_response(self, 500, {"detail": f"Fehler beim Speichern der Audio-Datei: {exc}"})
-            return
-
         _json_response(self, 200, {
-            "input_text": input_text,
-            "response_text": response_text,
+            "input_text": text,
+            "response_text": text,
             "voice_id": voice_id,
             "output_audio_url": _to_public_url(output_path),
             "output_audio_path": str(output_path),
-            "metadata": {"input_mode": input_mode},
+            "metadata": {"input_mode": "text"},
         })
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Local UI server – proxied to Applio Runner."
+        description="Local UI server – proxied to Chatterbox TTS."
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=5500)
@@ -213,14 +198,11 @@ def main() -> int:
         print(f"Frontend folder not found: {FRONTEND_ROOT}", file=sys.stderr)
         return 1
 
-    # Runner-Erreichbarkeit prüfen
-    try:
-        _runner_get("/health")
-        print(f"Applio Runner erreichbar: {RUNNER_URL}")
-    except Exception:
-        print(f"WARNUNG: Applio Runner nicht erreichbar ({RUNNER_URL})")
-        print("  → Starte applio_runner.py auf dem Host-System.")
-        print("  → Server startet trotzdem, API-Calls werden fehlschlagen bis Runner läuft.")
+    if _chatterbox_health():
+        print(f"Chatterbox TTS erreichbar: {CHATTERBOX_URL}")
+    else:
+        print(f"WARNUNG: Chatterbox TTS nicht erreichbar ({CHATTERBOX_URL})")
+        print("  → Server startet trotzdem, API-Calls werden fehlschlagen bis Chatterbox läuft.")
 
     server = ThreadingHTTPServer((args.host, args.port), LocalHandler)
     print(f"Local UI läuft auf http://{args.host}:{args.port}")

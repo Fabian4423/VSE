@@ -1,75 +1,22 @@
 // ── Element refs ──────────────────────────────────────────
 const voiceIdEl       = document.getElementById("voiceId");
-const ttsVoiceEl      = document.getElementById("ttsVoice");
-const ttsRateEl       = document.getElementById("ttsRate");
-const ttsPresetEl     = document.getElementById("ttsPreset");
-const speedValueEl    = document.getElementById("speedValue");
-const textWrapEl      = document.getElementById("textWrap");
-const audioWrapEl     = document.getElementById("audioWrap");
 const textInputEl     = document.getElementById("textInput");
-const audioInputEl    = document.getElementById("audioInput");
-const fileLabelEl     = document.getElementById("fileLabel");
-const fileLabelTextEl = document.getElementById("fileLabelText");
 const runBtnEl        = document.getElementById("runBtn");
 const refreshVoicesEl = document.getElementById("refreshVoices");
 const statusTextEl    = document.getElementById("statusText");
 const statusDotEl     = document.querySelector(".status-dot");
 const chatAreaEl      = document.getElementById("chatArea");
 const emptyStateEl    = document.getElementById("emptyState");
-const pillTextEl      = document.getElementById("pillText");
-const pillAudioEl     = document.getElementById("pillAudio");
 const sidebarEl       = document.getElementById("sidebar");
 const sidebarToggleEl = document.getElementById("sidebarToggle");
 const openSidebarEl   = document.getElementById("openSidebar");
 
-// ── Tonlage-Presets ───────────────────────────────────────
-// Jedes Preset setzt: tts_voice (Edge-Stimme) + rate-Offset
-const PRESETS = {
-  sachlich:     { voice: "de-DE-KatjaNeural",     rateOffset: 0  },
-  freundlich:   { voice: "de-DE-SeraphinaNeural", rateOffset: 5  },
-  energetisch:  { voice: "de-DE-AmalaNeural",     rateOffset: 30 },
-  jugendlich:   { voice: "de-DE-AmalaNeural",     rateOffset: 10 },
-  bestimmt:     { voice: "de-DE-ConradNeural",    rateOffset: 0  },
-  eindringlich: { voice: "de-DE-ConradNeural",    rateOffset: 20 },
-};
-
-function getEffectiveRate() {
-  const preset = PRESETS[ttsPresetEl.value] || PRESETS.sachlich;
-  return Number(ttsRateEl.value) + preset.rateOffset;
-}
-
-function applyPreset() {
-  const preset = PRESETS[ttsPresetEl.value] || PRESETS.sachlich;
-  ttsVoiceEl.value = preset.voice;
-}
-
 // ── Helpers ───────────────────────────────────────────────
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || "");
-      resolve(result.includes(",") ? result.split(",")[1] : result);
-    };
-    reader.onerror = () => reject(reader.error || new Error("Datei konnte nicht gelesen werden."));
-    reader.readAsDataURL(file);
-  });
-}
-
 function setStatus(message, state = "ready") {
   statusTextEl.textContent = message;
   statusDotEl.className = "status-dot";
   if (state === "busy")  statusDotEl.classList.add("busy");
   if (state === "error") statusDotEl.classList.add("error");
-}
-
-// ── Mode switching ────────────────────────────────────────
-function updateMode() {
-  const mode = document.querySelector("input[name='mode']:checked").value;
-  textWrapEl.classList.toggle("hidden", mode !== "text");
-  audioWrapEl.classList.toggle("hidden", mode !== "audio");
-  pillTextEl.classList.toggle("active", mode === "text");
-  pillAudioEl.classList.toggle("active", mode === "audio");
 }
 
 // ── Sidebar ───────────────────────────────────────────────
@@ -90,63 +37,6 @@ textInputEl.addEventListener("keydown", (e) => {
   }
 });
 
-// ── File input label ──────────────────────────────────────
-audioInputEl.addEventListener("change", () => {
-  const file = audioInputEl.files?.[0];
-  if (file) {
-    fileLabelTextEl.textContent = file.name;
-    fileLabelEl.classList.add("has-file");
-  } else {
-    fileLabelTextEl.textContent = "Audiodatei waehlen...";
-    fileLabelEl.classList.remove("has-file");
-  }
-});
-
-// ── Speed slider label ────────────────────────────────────
-function updateSpeedLabel() {
-  const v = Number(ttsRateEl.value);
-  let label;
-  if (v === 0)       label = "Normal (0)";
-  else if (v <= -50) label = `Sehr langsam (${v})`;
-  else if (v < 0)    label = `Langsamer (${v})`;
-  else if (v >= 50)  label = `Sehr schnell (+${v})`;
-  else               label = `Schneller (+${v})`;
-  speedValueEl.textContent = label;
-}
-
-ttsRateEl.addEventListener("input", updateSpeedLabel);
-
-// ── Custom Preset Dropdown ────────────────────────────────
-const presetTriggerEl = document.getElementById("presetTrigger");
-const presetListEl    = document.getElementById("presetList");
-const presetLabelEl   = document.getElementById("presetLabel");
-const presetSelectEl  = document.getElementById("presetSelect");
-
-presetTriggerEl.addEventListener("click", (e) => {
-  e.stopPropagation();
-  const isOpen = presetSelectEl.classList.contains("open");
-  presetSelectEl.classList.toggle("open", !isOpen);
-  presetTriggerEl.setAttribute("aria-expanded", String(!isOpen));
-});
-
-presetListEl.querySelectorAll(".custom-select-option").forEach((opt) => {
-  opt.addEventListener("click", () => {
-    const val = opt.dataset.value;
-    ttsPresetEl.value = val;
-    presetLabelEl.textContent = opt.textContent;
-    presetListEl.querySelectorAll(".custom-select-option").forEach(o => o.classList.remove("selected"));
-    opt.classList.add("selected");
-    presetSelectEl.classList.remove("open");
-    presetTriggerEl.setAttribute("aria-expanded", "false");
-    applyPreset();
-  });
-});
-
-document.addEventListener("click", () => {
-  presetSelectEl.classList.remove("open");
-  presetTriggerEl.setAttribute("aria-expanded", "false");
-});
-
 // ── Chat rendering ────────────────────────────────────────
 function hideEmpty() {
   if (emptyStateEl) emptyStateEl.remove();
@@ -163,21 +53,6 @@ function appendUserMessage(text) {
   row.innerHTML = `
     <div class="msg-bubble">
       <div class="msg-text">${escHtml(text)}</div>
-    </div>
-    <div class="msg-avatar">Du</div>
-  `;
-  chatAreaEl.appendChild(row);
-  scrollToBottom();
-}
-
-function appendUserAudio(filename) {
-  hideEmpty();
-  const row = document.createElement("div");
-  row.className = "msg-row user";
-  row.innerHTML = `
-    <div class="msg-bubble">
-      <div class="msg-label">Audio-Datei</div>
-      <div class="msg-text">${escHtml(filename)}</div>
     </div>
     <div class="msg-avatar">Du</div>
   `;
@@ -211,7 +86,6 @@ function appendBotResult(data) {
   removeThinking();
   const audioUrl  = data.output_audio_url || "";
   const fileName  = (data.output_audio_path || "").split("/").pop() || "chattie-output.wav";
-  const inputText    = data.input_text || "";
   const responseText = data.response_text || "";
 
   const row = document.createElement("div");
@@ -231,8 +105,7 @@ function appendBotResult(data) {
   }
 
   let bodyHtml = "";
-  if (inputText)    bodyHtml += `<div class="msg-label">Erkannter Text</div><div class="msg-text">${escHtml(inputText)}</div>`;
-  if (responseText) bodyHtml += `${inputText ? '<div style="margin-top:8px"></div>' : ''}<div class="msg-label">Antwort</div><div class="msg-text">${escHtml(responseText)}</div>`;
+  if (responseText) bodyHtml += `<div class="msg-label">Sprachausgabe</div><div class="msg-text">${escHtml(responseText)}</div>`;
   bodyHtml += audioHtml;
 
   row.innerHTML = `
@@ -294,11 +167,10 @@ async function loadVoices() {
     voices.forEach((voice) => {
       const opt = document.createElement("option");
       opt.value = voice.voice_id;
-      const suffix = voice.has_index ? "index" : "no-index";
-      opt.textContent = `${voice.voice_id} (${suffix})`;
+      opt.textContent = voice.voice_id;
       voiceIdEl.appendChild(opt);
     });
-    setStatus(`${voices.length} Voices geladen`, "ready");
+    setStatus(`${voices.length} Stimmen geladen`, "ready");
   } catch (err) {
     setStatus(friendlyError(err), "error");
   }
@@ -306,36 +178,15 @@ async function loadVoices() {
 
 // ── Main action ───────────────────────────────────────────
 async function runAssistant() {
-  const mode    = document.querySelector("input[name='mode']:checked").value;
   const voiceId = voiceIdEl.value;
+  if (!voiceId) { appendError("Keine Stimme verfuegbar."); return; }
 
-  if (!voiceId) { appendError("Keine Voice verfuegbar."); return; }
+  const text = textInputEl.value.trim();
+  if (!text) { setStatus("Bitte Text eingeben.", "error"); return; }
 
-  applyPreset();
-
-  const payload = {
-    voice_id:  voiceId,
-    tts_voice: ttsVoiceEl.value,
-    tts_rate:  getEffectiveRate(),
-  };
-
-  if (mode === "text") {
-    const text = textInputEl.value.trim();
-    if (!text) { setStatus("Bitte Text eingeben.", "error"); return; }
-    payload.text = text;
-    appendUserMessage(text);
-    textInputEl.value = "";
-    textInputEl.style.height = "auto";
-  } else {
-    const file = audioInputEl.files?.[0];
-    if (!file) { setStatus("Bitte Audiodatei waehlen.", "error"); return; }
-    payload.audio_base64 = await fileToBase64(file);
-    payload.audio_name   = file.name || "input.wav";
-    appendUserAudio(file.name);
-    audioInputEl.value = "";
-    fileLabelTextEl.textContent = "Audiodatei waehlen...";
-    fileLabelEl.classList.remove("has-file");
-  }
+  appendUserMessage(text);
+  textInputEl.value = "";
+  textInputEl.style.height = "auto";
 
   runBtnEl.disabled = true;
   setStatus("Verarbeite...", "busy");
@@ -345,7 +196,7 @@ async function runAssistant() {
     const res = await fetch("/api/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ voice_id: voiceId, text }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -388,14 +239,10 @@ function friendlyError(err) {
 }
 
 // ── Event listeners ───────────────────────────────────────
-document.querySelectorAll("input[name='mode']").forEach((el) => el.addEventListener("change", updateMode));
 refreshVoicesEl.addEventListener("click", () => loadVoices());
 runBtnEl.addEventListener("click", () => runAssistant().catch((err) => appendError(friendlyError(err))));
 sidebarToggleEl.addEventListener("click", toggleSidebar);
 openSidebarEl.addEventListener("click", toggleSidebar);
 
 // ── Init ──────────────────────────────────────────────────
-updateMode();
-updateSpeedLabel();
-applyPreset();
 loadVoices();
