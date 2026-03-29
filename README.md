@@ -1,6 +1,6 @@
 # VSE – Text-to-Speech Web UI
 
-Lokale Web-Oberfläche für Applio TTS/RVC. Macht Sprachmodelle für Nutzer ohne CLI-Erfahrung zugänglich.
+Lokale Web-Oberfläche für Chatterbox TTS. Macht Sprachausgabe mit 28 vordefinierten Stimmen für Nutzer ohne CLI-Erfahrung zugänglich.
 
 Architektur und Anforderungen: [`docs/`](docs/)
 
@@ -8,12 +8,12 @@ Architektur und Anforderungen: [`docs/`](docs/)
 
 ## Wie es funktioniert
 
-Zwei Python-Prozesse arbeiten zusammen:
+Der UI-Server stellt das Frontend bereit und leitet TTS-Anfragen an den Chatterbox-Service weiter:
 
 | Prozess | Läuft auf | Port | Aufgabe |
 |---------|-----------|------|---------|
-| `local_ui_server.py` | VM | 5500 | Frontend ausliefern, API-Proxy zum Runner |
-| `applio_runner.py` | Host (GPU) | 5600 | Applio CLI kapseln, Audio als Base64 zurückgeben |
+| `local_ui_server.py` | VM | 5500 | Frontend ausliefern, API-Proxy zu Chatterbox |
+| Chatterbox TTS | Host (GPU) | 8004 | Text-to-Speech mit vordefinierten Stimmen |
 
 ---
 
@@ -26,21 +26,7 @@ git clone https://github.com/Fabian4423/VSE.git
 cd VSE
 ```
 
-### 2. Runner konfigurieren (Host-System, einmalig)
-
-```bash
-cp runner.env.example runner.env
-```
-
-`runner.env` anpassen:
-
-```env
-APPLIO_ROOT=/pfad/zu/Applio
-APPLIO_PYTHON=/pfad/zu/Applio/.venv/bin/python
-RVC_MODEL_ROOT=/pfad/zu/VSE/backend/models/rvc
-```
-
-### 3. UI-Server konfigurieren (VM, einmalig)
+### 2. UI-Server konfigurieren (VM, einmalig)
 
 ```bash
 cp backend/.env.example backend/.env
@@ -49,33 +35,21 @@ cp backend/.env.example backend/.env
 `backend/.env` anpassen:
 
 ```env
-APPLIO_RUNNER_URL=http://<HOST-IP>:5600
+CHATTERBOX_URL=http://<HOST-IP>:8004
 STORAGE_ROOT=/pfad/zu/VSE/backend/storage
 ```
 
-> Wenn Runner und UI-Server auf derselben Maschine laufen: `APPLIO_RUNNER_URL=http://localhost:5600`
+> Wenn Chatterbox und UI-Server auf derselben Maschine laufen: `CHATTERBOX_URL=http://localhost:8004`
 
-### 4. Stimmmodelle hinzufügen
+### 3. Verfügbare Stimmen
 
-Modelle im folgenden Format ablegen (Verzeichnisname = `voice_id`):
+28 vordefinierte Stimmen sind sofort verfügbar:
 
-```
-backend/models/rvc/
-└── MeineStimme/
-    ├── MeineStimme.pth      ← obligatorisch
-    └── MeineStimme.index    ← optional, verbessert Qualität
-```
-
-Neue Modelle werden automatisch erkannt — kein Neustart nötig.
+Abigail, Adrian, Alexander, Alice, Austin, Axel, Connor, Cora, Elena, Eli, Emily, Everett, Gabriel, Gianna, Henry, Ian, Jade, Jeremiah, Jordan, Julian, Layla, Leonardo, Michael, Miles, Olivia, Ryan, Taylor, Thomas
 
 ---
 
 ## Starten
-
-**Host-System (Runner):**
-```bash
-python3 applio_runner.py
-```
 
 **VM (UI-Server):**
 ```bash
@@ -89,11 +63,14 @@ Dann im Browser öffnen: `http://127.0.0.1:5500`
 ## Schnelltest
 
 ```bash
-# Runner erreichbar?
-curl http://localhost:5600/health
-
-# Modelle geladen?
+# UI-Server erreichbar?
 curl http://localhost:5500/api/voices
+
+# Chatterbox direkt testen:
+curl -X POST "http://192.168.100.64:8004/tts" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hallo Welt", "voice_mode": "predefined", "predefined_voice_id": "Alexander.wav"}' \
+  -o test.wav
 ```
 
 ---
@@ -115,25 +92,15 @@ API-Endpunkte für die UI:
 
 | Endpunkt | Methode | Beschreibung |
 |----------|---------|--------------|
-| `/api/voices` | GET | Verfügbare Stimmmodelle |
-| `/api/run` | POST | Audio erzeugen (Text- oder Audio-Modus) |
+| `/api/voices` | GET | Verfügbare Stimmen |
+| `/api/run` | POST | Audio erzeugen (Text-Modus) |
 | `/storage/*` | GET | Generierte Audiodateien abrufen |
 
-**POST /api/run – Text-Modus:**
+**POST /api/run:**
 ```json
 {
-  "voice_id": "MeineStimme",
-  "text": "Hallo Welt",
-  "tts_voice": "de-DE-KatjaNeural",
-  "tts_rate": 0
-}
-```
-
-**POST /api/run – Audio-Modus:**
-```json
-{
-  "voice_id": "MeineStimme",
-  "audio_base64": "data:audio/wav;base64,..."
+  "voice_id": "Alexander",
+  "text": "Hallo Welt"
 }
 ```
 
@@ -149,6 +116,5 @@ API-Endpunkte für die UI:
 ## Stoppen
 
 ```bash
-pkill -f applio_runner.py
 pkill -f local_ui_server.py
 ```

@@ -4,58 +4,57 @@
 
 ---
 
-## 1. Architekturüberblick: Zweistufige CLI-Bridge
+## 1. Architekturüberblick: Proxy-Architektur mit Chatterbox TTS
 
 ### Problemstellung
 
-Die Applio TTS-Engine ist ein kommandozeilenbasiertes Werkzeug — die Zielgruppe sind jedoch Mitarbeitende ohne CLI-Erfahrung (vgl. Anforderung NF-01). Ein direkter Zugang zur CLI ist für diese Nutzergruppe nicht praktikabel.
+Die Zielgruppe sind Mitarbeitende ohne CLI-Erfahrung (vgl. Anforderung NF-01). Ein direkter Zugang zur TTS-API ist für diese Nutzergruppe nicht praktikabel.
 
-Zusätzlich erfordert die Engine GPU-Zugriff. Die VM, auf der der Webserver läuft, hat keinen direkten GPU-Zugang — Applio muss auf dem Host-System ausgeführt werden.
+Der Chatterbox TTS-Service läuft auf dem Host-System mit GPU-Zugriff. Die VM, auf der der Webserver läuft, hat keinen direkten GPU-Zugang — die TTS-Verarbeitung muss auf dem Host-System erfolgen.
 
 ### Lösungsansatz
 
-Die Anwendung folgt einer **zweistufigen Client-Server-Architektur**. Zwei HTTP-Server bilden zusammen die Bridge zwischen Browser und Applio-CLI:
+Die Anwendung folgt einer **Client-Server-Proxy-Architektur**. Der UI-Server auf der VM dient als Vermittler zwischen Browser und Chatterbox TTS-Service:
 
-1. **`applio_runner.py`** läuft auf dem **Host-System** mit GPU-Zugriff und kapselt alle CLI-Aufrufe an Applio
-2. **`local_ui_server.py`** läuft auf der **VM**, stellt die Weboberfläche bereit und leitet API-Anfragen an den Runner weiter
+1. **`local_ui_server.py`** läuft auf der **VM**, stellt die Weboberfläche bereit und leitet TTS-Anfragen an den Chatterbox-Service weiter
+2. **Chatterbox TTS** läuft auf dem **Host-System** mit GPU-Zugriff und erzeugt die Sprachausgabe
 
 **Diagramm:** [01_system_architecture.svg](diagrams/01_system_architecture.svg)
 
-### Vier logische Schichten
+### Drei logische Schichten
 
 | Schicht | Komponente | System | Technologie | Aufgabe |
 |---------|-----------|--------|-------------|---------|
 | **Präsentation** | Browser (Client) | Beliebig | HTML, CSS, Vanilla JavaScript | Benutzeroberfläche, Eingabe, Audio-Wiedergabe |
-| **Vermittlung** | local_ui_server.py | VM | Python `ThreadingHTTPServer` | Frontend-Hosting, API-Proxy zum Runner |
-| **Ausführung** | applio_runner.py | Host | Python `ThreadingHTTPServer` | Protokollübersetzung (JSON ↔ CLI), Dateiverwaltung |
-| **Verarbeitung** | Applio CLI | Host | Python, PyTorch (GPU) | Text-to-Speech, Voice Conversion |
+| **Vermittlung** | local_ui_server.py | VM | Python `ThreadingHTTPServer` | Frontend-Hosting, API-Proxy zu Chatterbox |
+| **Verarbeitung** | Chatterbox TTS | Host | Python, GPU | Text-to-Speech mit vordefinierten Stimmen |
 
 ### Zentrale Designentscheidung
 
-Beide Server führen **keine Audioverarbeitung** durch. Die Aufgabentrennung ist klar:
+Der UI-Server führt **keine Audioverarbeitung** durch. Die Aufgabentrennung ist klar:
 
-- **`local_ui_server.py`** — Frontend ausliefern, Requests entgegennehmen, an Runner weiterleiten
-- **`applio_runner.py`** — CLI-Argumente aufbauen, Subprozesse starten, Ergebnisse als Base64 zurückgeben
-- **Applio CLI** — alle GPU-intensive Arbeit
+- **`local_ui_server.py`** — Frontend ausliefern, Requests entgegennehmen, an Chatterbox weiterleiten, Audio-Ergebnisse speichern
+- **Chatterbox TTS** — Text-to-Speech-Generierung mit GPU-Beschleunigung
 
 ---
 
 ## 2. Technologieentscheidungen
 
-### Warum zwei separate Server statt einem?
+### Warum ein separater UI-Server statt direktem API-Zugriff?
 
-Die Trennung in `local_ui_server.py` (VM) und `applio_runner.py` (Host) ermöglicht:
+Die Trennung in `local_ui_server.py` (VM) und Chatterbox TTS (Host) ermöglicht:
 
-- **GPU-Isolation** — Applio läuft dort wo die GPU ist (Host), der Webserver läuft auf der VM ohne GPU-Anforderung
-- **Unabhängige Skalierbarkeit** — Runner und UI-Server können unabhängig voneinander neu gestartet oder skaliert werden
-- **Klar definierte Schnittstelle** — Die HTTP-API zwischen VM und Host ist explizit und versionierbar
+- **GPU-Isolation** — Chatterbox läuft dort wo die GPU ist (Host), der Webserver läuft auf der VM ohne GPU-Anforderung
+- **Entkopplung** — Der Chatterbox-Service kann unabhängig aktualisiert oder neu gestartet werden
+- **Klar definierte Schnittstelle** — Die HTTP-API zwischen VM und Host ist explizit
+- **Dateimanagement** — Generierte Audiodateien werden lokal auf der VM gespeichert und zum Download bereitgestellt
 
 ### Warum kein API-Framework (FastAPI, Flask)?
 
-Pythons `ThreadingHTTPServer` aus der Standardbibliothek wurde für beide Server bewusst gewählt:
+Pythons `ThreadingHTTPServer` aus der Standardbibliothek wurde bewusst gewählt:
 
-- **Keine externen Abhängigkeiten** — Beide Server benötigen nur eine Standard-Python-Installation
-- **Einfaches Deployment** — Kein `pip install`, keine virtuelle Umgebung für die Server selbst
+- **Keine externen Abhängigkeiten** — Der UI-Server benötigt nur eine Standard-Python-Installation
+- **Einfaches Deployment** — Kein `pip install`, keine virtuelle Umgebung
 - **Ausreichend für den Anwendungsfall** — Wenige Endpunkte, geringe gleichzeitige Nutzerzahl im internen Netzwerk
 
 ### Warum Vanilla JavaScript (kein React/Vue)?
@@ -64,14 +63,13 @@ Pythons `ThreadingHTTPServer` aus der Standardbibliothek wurde für beide Server
 - Kein Build-Prozess nötig — statische Dateien werden direkt vom Server ausgeliefert
 - Reduziert die Infrastrukturanforderungen auf dem lokalen Server
 
-### Warum Subprozesse statt direkter Python-Integration?
+### Warum vordefinierte Stimmen statt eigener Modelle?
 
-Die Applio-Engine wird per `subprocess.run()` als eigener Betriebssystemprozess gestartet statt als Python-Modul importiert:
+Chatterbox TTS bietet 28 vordefinierte Stimmen unterschiedlicher Charakteristik. Diese Entscheidung hat folgende Vorteile:
 
-- **Fehlertoleranz** — Ein Absturz der TTS-Engine beendet nicht den Server
-- **Timeout-Kontrolle** — Hängende Prozesse werden nach konfigurierbarer Zeit abgebrochen
-- **Entkopplung** — Applio kann unabhängig vom Server aktualisiert werden
-- **Ressourcentrennung** — GPU-/CPU-intensive Arbeit läuft isoliert
+- **Kein Modell-Management** — Keine `.pth`- oder `.index`-Dateien, kein Modellverzeichnis
+- **Sofort einsatzbereit** — Stimmen sind Teil des Chatterbox-Service
+- **Konsistente Qualität** — Vordefinierte Stimmen sind getestet und optimiert
 
 ---
 
@@ -80,18 +78,12 @@ Die Applio-Engine wird per `subprocess.run()` als eigener Betriebssystemprozess 
 ```
 VSE/
 ├── local_ui_server.py              # UI-Server (VM): Frontend-Hosting + API-Proxy
-├── applio_runner.py                # Runner (Host): CLI-Bridge zu Applio
-├── runner.env                      # Konfiguration des Runners (nicht im Repository)
 ├── frontend/                       # Statische Web-Oberfläche
 │   ├── index.html                  # HTML-Struktur
 │   ├── app.js                      # Client-Logik (Vanilla JS)
 │   └── styles.css                  # Styling
 └── backend/
-    ├── .env                        # Konfiguration des UI-Servers (Runner-URL etc.)
-    ├── models/
-    │   └── rvc/<voice_id>/         # Stimmmodelle (auf dem Host, vom Runner gelesen)
-    │       ├── model.pth           # RVC-Modell (obligatorisch)
-    │       └── model.index         # Feature-Index (optional, verbessert Qualität)
+    ├── .env                        # Konfiguration des UI-Servers (Chatterbox-URL etc.)
     └── storage/
         └── output/                 # Finale Audiodateien (zum Download, auf der VM)
 ```
@@ -100,10 +92,10 @@ VSE/
 
 ## 4. Konfigurationsmanagement
 
-Das System verwendet zwei getrennte Konfigurationsdateien — eine pro Server. Beide nutzen denselben einfachen `.env`-Parser ohne externe Abhängigkeiten:
+Das System verwendet eine Konfigurationsdatei auf der VM. Der einfache `.env`-Parser kommt ohne externe Abhängigkeiten aus:
 
 ```python
-# applio_runner.py / local_ui_server.py
+# local_ui_server.py
 def _load_env_file(path: Path) -> None:
     if not path.exists():
         return
@@ -117,21 +109,11 @@ def _load_env_file(path: Path) -> None:
             os.environ[key] = value.strip()
 ```
 
-### `runner.env` — Konfiguration des Host-Runners
-
-| Variable | Beschreibung | Beispiel |
-|----------|-------------|---------|
-| `APPLIO_ROOT` | Installationspfad der Applio-Engine | `/home/user/Applio` |
-| `APPLIO_PYTHON` | Python-Interpreter der Applio-Umgebung | `/home/user/Applio/.venv/bin/python` |
-| `APPLIO_TIMEOUT_SECONDS` | Maximale Laufzeit eines TTS-Prozesses | `600` |
-| `RVC_MODEL_ROOT` | Verzeichnis der Stimmmodelle | `/pfad/zu/models/rvc` |
-| `RUNNER_PORT` | Port des Runners | `5600` |
-
 ### `backend/.env` — Konfiguration des VM-UI-Servers
 
 | Variable | Beschreibung | Standardwert |
 |----------|-------------|--------------|
-| `APPLIO_RUNNER_URL` | URL des Runners auf dem Host | `http://192.168.100.64:5600` |
+| `CHATTERBOX_URL` | URL des Chatterbox TTS-Service auf dem Host | `http://192.168.100.64:8004` |
 | `STORAGE_ROOT` | Verzeichnis für Ausgabedateien | `backend/storage` |
 
 ---
@@ -144,52 +126,30 @@ Das System stellt zwei HTTP-APIs bereit — eine auf der VM (öffentlich zugäng
 
 | Endpunkt | Methode | Funktion |
 |----------|---------|----------|
-| `/api/voices` | GET | Liefert verfügbare Stimmmodelle (proxied vom Runner) |
-| `/api/run` | POST | Startet TTS oder Voice Conversion (proxied zum Runner) |
+| `/api/voices` | GET | Liefert die 28 verfügbaren Chatterbox-Stimmen |
+| `/api/run` | POST | Startet TTS-Generierung via Chatterbox |
 | `/storage/*` | GET | Liefert generierte Audiodateien aus |
 
-### Host: `applio_runner.py` (Port 5600)
+### Host: Chatterbox TTS (Port 8004)
 
 | Endpunkt | Methode | Funktion |
 |----------|---------|----------|
-| `/health` | GET | Statusabfrage |
-| `/voices` | GET | Scannt Modellverzeichnis und gibt Modell-Liste zurück |
-| `/tts` | POST | Text → TTS → Voice Conversion → WAV (Base64) |
-| `/infer` | POST | Audio (Base64) → Voice Conversion → WAV (Base64) |
+| `/tts` | POST | Text → WAV-Audiodatei (binary) |
 
-### Endpunkt: Dynamische Modellermittlung
+### Endpunkt: Verfügbare Stimmen
 
-Der Runner scannt das Modellverzeichnis bei jedem Request. `local_ui_server.py` leitet die Anfrage transparent weiter:
+Die 28 vordefinierten Chatterbox-Stimmen sind im UI-Server hinterlegt:
 
 ```python
 # local_ui_server.py
-def _list_voices() -> list[dict]:
-    try:
-        return _runner_get("/voices").get("voices", [])
-    except Exception:
-        return []
+CHATTERBOX_VOICES = [
+    "Abigail", "Adrian", "Alexander", "Alice", "Austin", "Axel",
+    "Connor", "Cora", "Elena", "Eli", "Emily", "Everett",
+    "Gabriel", "Gianna", "Henry", "Ian", "Jade", "Jeremiah",
+    "Jordan", "Julian", "Layla", "Leonardo", "Michael", "Miles",
+    "Olivia", "Ryan", "Taylor", "Thomas",
+]
 ```
-
-```python
-# applio_runner.py
-def _list_voices() -> list[dict]:
-    if not MODEL_ROOT.exists():
-        return []
-    voices = []
-    for d in sorted(MODEL_ROOT.iterdir()):
-        if not d.is_dir():
-            continue
-        pth = next(iter(sorted(d.glob("*.pth"))), None)
-        idx = next(iter(sorted(d.glob("*.index"))), None)
-        voices.append({
-            "voice_id": d.name,
-            "has_model": pth is not None,
-            "has_index": idx is not None,
-        })
-    return voices
-```
-
-Das erfüllt die Anforderung **F-04 (Erweiterbarkeit)**: Ein neues Modell wird durch Ablegen eines Ordners mit `.pth`-Datei im Modellverzeichnis registriert — ohne Code- oder Konfigurationsänderung.
 
 ### Endpunkt: Audiogenerierung (`POST /api/run`)
 
@@ -197,10 +157,8 @@ Das erfüllt die Anforderung **F-04 (Erweiterbarkeit)**: Ein neues Modell wird d
 
 ```json
 {
-  "voice_id": "MeineStimme",
-  "text": "Hallo, dies ist ein Test.",
-  "tts_voice": "de-DE-KatjaNeural",
-  "tts_rate": 0
+  "voice_id": "Alexander",
+  "text": "Hallo, dies ist ein Test."
 }
 ```
 
@@ -210,12 +168,26 @@ Das erfüllt die Anforderung **F-04 (Erweiterbarkeit)**: Ein neues Modell wird d
 {
   "input_text": "Hallo, dies ist ein Test.",
   "response_text": "Hallo, dies ist ein Test.",
-  "voice_id": "MeineStimme",
+  "voice_id": "Alexander",
   "output_audio_url": "/storage/output/a1b2c3d4.wav",
   "output_audio_path": "/absoluter/pfad/output/a1b2c3d4.wav",
   "metadata": {"input_mode": "text"}
 }
 ```
+
+### Chatterbox TTS API (`POST /tts`)
+
+Der UI-Server sendet folgendes Format an den Chatterbox-Service:
+
+```json
+{
+  "text": "Hallo, dies ist ein Test.",
+  "voice_mode": "predefined",
+  "predefined_voice_id": "Alexander.wav"
+}
+```
+
+Die Antwort ist eine **binäre WAV-Datei** (kein JSON). Der UI-Server speichert diese direkt als Datei.
 
 ### Endpunkt: Dateiauslieferung (`GET /storage/*`)
 
@@ -240,68 +212,35 @@ Durch `resolve()` werden symbolische Links und `../`-Pfade aufgelöst. Der `rela
 
 **Diagramm:** [02_processing_pipeline.svg](diagrams/02_processing_pipeline.svg)
 
-Die Audiogenerierung durchläuft eine zweistufige Pipeline auf dem Host-System. Das System unterstützt zwei Eingabemodi:
+Die Audiogenerierung erfolgt in einer einstufigen Pipeline:
 
-### Text-Modus (Hauptanwendungsfall)
+1. **Texteingabe** — Der Nutzer gibt Text ein und wählt eine der 28 vordefinierten Stimmen
+2. **Weiterleitung** — Der UI-Server leitet den Text und die Stimmenauswahl an den Chatterbox TTS-Service weiter
+3. **Text-to-Speech** — Chatterbox generiert die Sprachausgabe als WAV-Datei
+4. **Speicherung** — Der UI-Server speichert die WAV-Datei lokal unter einem UUID-Dateinamen
+5. **Wiedergabe/Download** — Der Browser lädt die Datei und bietet Wiedergabe und Download an
 
-1. **Stufe 1 — Text-to-Speech:** Der eingegebene Text wird von einer Edge-TTS-Stimme (z.B. `de-DE-KatjaNeural`) in eine neutrale Audiodatei umgewandelt
-2. **Stufe 2 — Voice Conversion:** Die neutrale Audiodatei wird mittels RVC (Retrieval-based Voice Conversion) in die gewählte Zielstimme konvertiert
-
-### Audio-Modus
-
-1. Stufe 1 entfällt — die hochgeladene Audiodatei dient direkt als Eingabe
-2. **Stufe 2 — Voice Conversion:** Wie im Text-Modus
-
-### Codebeispiel: TTS mit anschließender Voice Conversion (Runner)
+### Codebeispiel: TTS-Aufruf an Chatterbox
 
 ```python
-# applio_runner.py
-def _do_tts(text: str, tts_voice: str, tts_rate: int, voice_id: str) -> bytes:
-    pth, idx = _resolve_model(voice_id)
-    idx_arg = str(idx) if idx else ""
-    with tempfile.TemporaryDirectory() as tmp:
-        tts_out = Path(tmp) / "tts.wav"
-        rvc_out = Path(tmp) / "rvc.wav"
-        _run_applio([
-            str(APPLIO_PYTHON), "core.py", "tts",
-            "--tts_text",        text,
-            "--tts_voice",       tts_voice,
-            "--tts_rate",        str(tts_rate),
-            "--output_tts_path", str(tts_out),
-            "--output_rvc_path", str(rvc_out),
-            "--pth_path",        str(pth),
-            "--index_path",      idx_arg,
-            "--index_rate",      "0.3" if idx_arg else "0",
-            "--f0_method",       "rmvpe",
-            "--export_format",   "WAV",
-            "--embedder_model",  "contentvec",
-        ])
-        return rvc_out.read_bytes()
-```
-
-### Codebeispiel: Subprozess-Ausführung mit Fehlerbehandlung
-
-```python
-# applio_runner.py
-def _run_applio(cmd: list[str]) -> None:
-    shimmed = [cmd[0], "-c", _CORE_RUNNER_SHIM, *cmd[2:]]
-    proc = subprocess.run(
-        shimmed,
-        cwd=APPLIO_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=APPLIO_TIMEOUT,
+# local_ui_server.py
+def _chatterbox_tts(text: str, voice_id: str) -> bytes:
+    payload = json.dumps({
+        "text": text,
+        "voice_mode": "predefined",
+        "predefined_voice_id": f"{voice_id}.wav",
+    }).encode("utf-8")
+    req = _urllib_req.Request(
+        f"{CHATTERBOX_URL}/tts",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
     )
-    if proc.returncode != 0:
-        tail = (proc.stderr or proc.stdout or "")[-1200:]
-        raise RuntimeError(f"Applio failed (exit {proc.returncode}): {tail}")
+    with _urllib_req.urlopen(req, timeout=120) as resp:
+        return resp.read()
 ```
 
-Relevante Aspekte:
-- `capture_output=True` fängt stdout/stderr für Fehlerdiagnose ab
-- `timeout=APPLIO_TIMEOUT` verhindert, dass hängende Prozesse den Server blockieren
-- `cwd=APPLIO_ROOT` stellt sicher, dass Applio seine relativen Pfade korrekt auflöst
-- Der `_CORE_RUNNER_SHIM` umgeht ein Kompatibilitätsproblem mit `distutils` in Python 3.12+
+Im Vergleich zur früheren Architektur entfällt die CLI-Bridge: Chatterbox TTS ist ein eigenständiger HTTP-Service, der direkt angesprochen wird — ohne Subprozesse, temporäre Dateien oder Base64-Kodierung.
 
 ---
 
@@ -309,37 +248,27 @@ Relevante Aspekte:
 
 **Diagramm:** [03_request_response_flow.svg](diagrams/03_request_response_flow.svg)
 
-Ein vollständiger Request im Text-Modus durchläuft folgende Schritte:
+Ein vollständiger Request durchläuft folgende Schritte:
 
 1. **Client** sendet `POST /api/run` mit Text und Voice-ID an `local_ui_server.py` (VM)
-2. **UI-Server** validiert Eingabe (voice_id vorhanden? Text nicht leer?)
-3. **UI-Server** leitet Request als `POST /tts` an `applio_runner.py` (Host) weiter
-4. **Runner** löst Modellpfade auf: `rvc/<voice_id>/*.pth` + optional `*.index`
-5. **Runner** erstellt temporäres Verzeichnis, startet Applio als Subprozess
-6. **Applio** führt TTS + RVC aus, schreibt Ergebnis in temporäre Datei
-7. **Runner** liest Ergebnis, kodiert als Base64, sendet JSON-Response
-8. **UI-Server** dekodiert Base64, speichert WAV unter UUID-Dateinamen in `storage/output/`
-9. **UI-Server** antwortet mit JSON inkl. `output_audio_url`
-10. **Client** lädt Audio via `GET /storage/output/<uuid>.wav`
+2. **UI-Server** validiert Eingabe (voice_id gültig? Text nicht leer?)
+3. **UI-Server** leitet Request als `POST /tts` an Chatterbox TTS (Host) weiter
+4. **Chatterbox** generiert Sprachausgabe und gibt binäre WAV-Datei zurück
+5. **UI-Server** speichert WAV unter UUID-Dateinamen in `storage/output/`
+6. **UI-Server** antwortet mit JSON inkl. `output_audio_url`
+7. **Client** lädt Audio via `GET /storage/output/<uuid>.wav`
 
-Der Audiodatenstrom zwischen Runner und UI-Server läuft als **Base64-kodierter JSON-Payload** über HTTP. Dies vermeidet geteilte Dateisysteme zwischen Host und VM.
+Der Audiodatenstrom zwischen Chatterbox und UI-Server läuft als **binäre WAV-Daten** über HTTP — kein Base64-Overhead, kein geteiltes Dateisystem.
 
 ---
 
-## 8. Dynamisches Modellmanagement
+## 8. Stimmenverwaltung
 
-Das System erkennt neue Stimmmodelle automatisch nach dem **Convention-over-Configuration**-Prinzip. Es gibt keine zentrale Modellliste — die Verzeichnisstruktur ist die Konfiguration:
+Das System nutzt die 28 vordefinierten Stimmen des Chatterbox TTS-Service. Die Stimmen sind im UI-Server als Liste hinterlegt und werden über die `/api/voices`-API an das Frontend geliefert.
 
-```
-backend/models/rvc/
-├── MeineStimme/                # voice_id = "MeineStimme"
-│   ├── MeineStimme.pth         # → erste .pth-Datei wird verwendet
-│   └── MeineStimme.index       # → optional, verbessert Qualität
-└── neue_stimme/                # sofort verfügbar nach Ablegen, kein Neustart nötig
-    └── model.pth
-```
+Verfügbare Stimmen: Abigail, Adrian, Alexander, Alice, Austin, Axel, Connor, Cora, Elena, Eli, Emily, Everett, Gabriel, Gianna, Henry, Ian, Jade, Jeremiah, Jordan, Julian, Layla, Leonardo, Michael, Miles, Olivia, Ryan, Taylor, Thomas.
 
-Da der Runner das Verzeichnis bei **jedem Request** scannt, sind neue Modelle sofort verfügbar — ohne Neustart oder Konfigurationsänderung (vgl. Anforderung F-04).
+Neue Stimmen werden durch Aktualisierung der `CHATTERBOX_VOICES`-Liste im UI-Server und des Chatterbox-Service hinzugefügt.
 
 ---
 
@@ -350,11 +279,11 @@ Gemäß den Anforderungen (NF-03, C-01, C-03) setzt die Anwendung auf **Netzwerk
 | Maßnahme | Beschreibung |
 |----------|-------------|
 | **UI-Server auf localhost** | `local_ui_server.py` bindet standardmäßig auf `127.0.0.1` — nur lokal auf der VM erreichbar |
-| **Runner intern** | `applio_runner.py` ist nur im internen Host-Netzwerk erreichbar, nicht von außen |
+| **Chatterbox intern** | Chatterbox TTS ist nur im internen Host-Netzwerk erreichbar, nicht von außen |
 | **VPN-Pflicht** | Externer Zugriff nur über VPN (Infrastruktur-Ebene, nicht App-Ebene) |
 | **Path-Traversal-Schutz** | Dateizugriffe werden gegen `STORAGE_ROOT` validiert (siehe Abschnitt 5) |
-| **Prozessisolation** | Applio läuft in eigenem Subprozess mit Timeout |
-| **Keine Secrets im Code** | Pfade und Konfiguration über `.env`/`runner.env` (nicht im Repository) |
+| **Eingabevalidierung** | Voice-ID wird gegen die Liste gültiger Stimmen geprüft |
+| **Keine Secrets im Code** | Konfiguration über `.env` (nicht im Repository) |
 
 ---
 
@@ -362,14 +291,14 @@ Gemäß den Anforderungen (NF-03, C-01, C-03) setzt die Anwendung auf **Netzwerk
 
 | ID | Anforderung | Status | Umsetzung |
 |----|------------|--------|-----------|
-| **F-01** | Text-zu-Audio-Generierung | Erfüllt | `POST /api/run` → Runner `/tts` → Applio TTS + RVC → WAV |
-| **F-02** | Modellauswahl | Erfüllt | `GET /api/voices` proxied Runner `/voices`, scannt Verzeichnis dynamisch |
+| **F-01** | Text-zu-Audio-Generierung | Erfüllt | `POST /api/run` → Chatterbox `/tts` → WAV |
+| **F-02** | Stimmauswahl | Erfüllt | 28 vordefinierte Chatterbox-Stimmen über `/api/voices` |
 | **F-03** | Download der Tondatei | Erfüllt | `GET /storage/*` liefert WAV-Dateien aus |
-| **F-04** | Erweiterbarkeit für neue Modelle | Erfüllt | Convention-over-Configuration, kein Neustart nötig |
+| **F-04** | Erweiterbarkeit für neue Stimmen | Erfüllt | Neue Stimmen durch Erweiterung der Voice-Liste und des Chatterbox-Service |
 | **NF-01** | Usability | Erfüllt | Weboberfläche mit selbsterklärender Bedienung |
-| **NF-02** | Performance / Feedback | Teilweise | Button-Disable während Generierung, kein Spinner |
+| **NF-02** | Performance / Feedback | Erfüllt | Button-Disable und Ladeanimation während Generierung |
 | **NF-03** | Zugriffsbeschränkung | Erfüllt | Localhost-Bindung + VPN + Path-Traversal-Schutz |
-| **NF-04** | Skalierbarkeit | Grundlegend | ThreadingHTTPServer für parallele Requests auf beiden Servern |
+| **NF-04** | Skalierbarkeit | Grundlegend | ThreadingHTTPServer für parallele Requests |
 | **C-01** | Internes Netzwerk | Erfüllt | Kein externer Zugang |
 | **C-02** | Lokaler Server | Erfüllt | Keine Cloud-Abhängigkeiten, keine externen Python-Pakete |
 | **C-03** | VPN-Pflicht | Erfüllt | Infrastruktur-seitig umgesetzt |
@@ -380,6 +309,6 @@ Gemäß den Anforderungen (NF-03, C-01, C-03) setzt die Anwendung auf **Netzwerk
 
 | Datei | Beschreibung |
 |-------|-------------|
-| [diagrams/01_system_architecture.svg](diagrams/01_system_architecture.svg) | Systemarchitektur mit den vier Schichten (Client, UI-Server, Runner, Engine) |
-| [diagrams/02_processing_pipeline.svg](diagrams/02_processing_pipeline.svg) | Verarbeitungspipeline: Text-Modus vs. Audio-Modus |
-| [diagrams/03_request_response_flow.svg](diagrams/03_request_response_flow.svg) | Sequenzdiagramm: Request-Response-Zyklus im Text-Modus |
+| [diagrams/01_system_architecture.svg](diagrams/01_system_architecture.svg) | Systemarchitektur mit den drei Schichten (Client, UI-Server, Chatterbox TTS) |
+| [diagrams/02_processing_pipeline.svg](diagrams/02_processing_pipeline.svg) | Verarbeitungspipeline: Text → Chatterbox TTS → WAV |
+| [diagrams/03_request_response_flow.svg](diagrams/03_request_response_flow.svg) | Sequenzdiagramm: Request-Response-Zyklus |

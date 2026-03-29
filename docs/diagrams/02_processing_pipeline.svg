@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" font-family="'Segoe UI', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 520" font-family="'Segoe UI', Arial, sans-serif">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#475569"/>
@@ -9,86 +9,44 @@
   </defs>
 
   <!-- Background -->
-  <rect width="960" height="600" rx="12" fill="#f8fafc"/>
+  <rect width="640" height="520" rx="12" fill="#f8fafc"/>
 
   <!-- Title -->
-  <text x="480" y="38" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">Verarbeitungspipeline: Text-Modus vs. Audio-Modus</text>
-
-  <!-- ====== TEXT MODE (left) ====== -->
-  <text x="240" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#1e40af">Text-Modus</text>
+  <text x="320" y="38" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">Verarbeitungspipeline: Text → Chatterbox TTS → WAV</text>
 
   <!-- Step 1: Text Input -->
-  <rect x="115" y="88" width="250" height="48" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="240" y="110" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">Texteingabe (Browser)</text>
-  <text x="240" y="127" text-anchor="middle" font-size="10" fill="#475569">"Hallo, dies ist ein Test."</text>
-  <line x1="240" y1="136" x2="240" y2="162" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="145" y="68" width="350" height="48" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="320" y="90" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">1. Texteingabe (Browser)</text>
+  <text x="320" y="107" text-anchor="middle" font-size="10" fill="#475569">"Hallo, dies ist ein Test." + Stimme: Alexander</text>
+  <line x1="320" y1="116" x2="320" y2="142" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- Step 2: UI-Server forwards -->
-  <rect x="115" y="162" width="250" height="48" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="240" y="184" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">UI-Server: POST /tts</text>
-  <text x="240" y="200" text-anchor="middle" font-size="10" fill="#475569">→ applio_runner.py (HTTP/JSON)</text>
-  <line x1="240" y1="210" x2="240" y2="236" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="145" y="142" width="350" height="48" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="320" y="164" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">2. UI-Server: POST /tts → Chatterbox</text>
+  <text x="320" y="180" text-anchor="middle" font-size="10" fill="#475569">{ text, voice_mode: "predefined", predefined_voice_id: "Alexander.wav" }</text>
+  <line x1="320" y1="190" x2="320" y2="216" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <!-- Step 3: Runner CLI translation -->
-  <rect x="115" y="236" width="250" height="48" rx="8" fill="#fde68a" stroke="#b45309" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="240" y="258" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">Runner: JSON → CLI</text>
-  <text x="240" y="274" text-anchor="middle" font-size="10" fill="#475569">python core.py tts --tts_text ...</text>
-  <line x1="240" y1="284" x2="240" y2="310" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Step 3: Chatterbox TTS -->
+  <rect x="145" y="216" width="350" height="66" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2" filter="url(#shadow)"/>
+  <text x="320" y="242" text-anchor="middle" font-size="14" font-weight="700" fill="#14532d">3. Chatterbox TTS (Host, GPU)</text>
+  <text x="320" y="262" text-anchor="middle" font-size="11" fill="#334155">Text-to-Speech mit vordefinierter Stimme</text>
+  <text x="320" y="276" text-anchor="middle" font-size="10" fill="#64748b">Ergebnis: WAV-Audiodatei (Binary)</text>
+  <line x1="320" y1="282" x2="320" y2="308" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <!-- Step 4: TTS -->
-  <rect x="115" y="310" width="250" height="58" rx="8" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="240" y="334" text-anchor="middle" font-size="12" font-weight="600" fill="#0c4a6e">Stufe 1: Text-to-Speech</text>
-  <text x="240" y="350" text-anchor="middle" font-size="10" fill="#475569">Edge-TTS (de-DE-KatjaNeural)</text>
-  <text x="240" y="362" text-anchor="middle" font-size="9" fill="#94a3b8">→ temp/tts.wav</text>
+  <!-- Step 4: UI-Server saves -->
+  <rect x="145" y="308" width="350" height="48" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="320" y="330" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">4. UI-Server: WAV speichern</text>
+  <text x="320" y="346" text-anchor="middle" font-size="10" fill="#475569">→ storage/output/&lt;uuid&gt;.wav</text>
+  <line x1="320" y1="356" x2="320" y2="382" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <!-- ====== AUDIO MODE (right) ====== -->
-  <text x="720" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#7c3aed">Audio-Modus</text>
-
-  <!-- Step 1: Audio Upload -->
-  <rect x="595" y="88" width="250" height="48" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="720" y="110" text-anchor="middle" font-size="12" font-weight="600" fill="#4c1d95">Audio-Upload (Browser)</text>
-  <text x="720" y="127" text-anchor="middle" font-size="10" fill="#475569">Base64-kodierte Audiodatei</text>
-  <line x1="720" y1="136" x2="720" y2="162" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <!-- Step 2: UI-Server forwards -->
-  <rect x="595" y="162" width="250" height="48" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="720" y="184" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">UI-Server: POST /infer</text>
-  <text x="720" y="200" text-anchor="middle" font-size="10" fill="#475569">→ applio_runner.py (HTTP/JSON)</text>
-  <line x1="720" y1="210" x2="720" y2="236" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <!-- Step 3: Runner CLI translation -->
-  <rect x="595" y="236" width="250" height="48" rx="8" fill="#fde68a" stroke="#b45309" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="720" y="258" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">Runner: Base64 → temp file</text>
-  <text x="720" y="274" text-anchor="middle" font-size="10" fill="#475569">python core.py infer --input_path ...</text>
-  <line x1="720" y1="284" x2="720" y2="310" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <!-- Step 4: Skip TTS -->
-  <rect x="595" y="310" width="250" height="58" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
-  <text x="720" y="342" text-anchor="middle" font-size="12" fill="#94a3b8">Stufe 1 entfällt</text>
-  <text x="720" y="360" text-anchor="middle" font-size="10" fill="#94a3b8">(Audio bereits vorhanden)</text>
-
-  <!-- ====== SHARED: RVC Voice Conversion ====== -->
-  <line x1="240" y1="368" x2="240" y2="394" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="720" y1="368" x2="720" y2="394" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <rect x="115" y="394" width="730" height="66" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2" filter="url(#shadow)"/>
-  <text x="480" y="420" text-anchor="middle" font-size="14" font-weight="700" fill="#14532d">Stufe 2: RVC Voice Conversion (applio_runner.py → Applio CLI)</text>
-  <text x="480" y="440" text-anchor="middle" font-size="11" fill="#334155">Methode: rmvpe | Embedder: contentvec | Format: WAV</text>
-  <text x="480" y="454" text-anchor="middle" font-size="10" fill="#64748b">Neutrale Stimme → gewähltes Stimmmodell (*.pth + optional *.index)</text>
-
-  <!-- Arrow to Base64 return -->
-  <line x1="480" y1="460" x2="480" y2="486" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <!-- Step: Runner returns Base64 -->
-  <rect x="290" y="486" width="380" height="38" rx="8" fill="#fde68a" stroke="#b45309" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="480" y="504" text-anchor="middle" font-size="12" font-weight="600" fill="#78350f">Runner: WAV → Base64 → HTTP Response</text>
-  <text x="480" y="518" text-anchor="middle" font-size="10" fill="#475569">UI-Server: dekodiert + speichert output/&lt;uuid&gt;.wav</text>
-
-  <!-- Arrow to output -->
-  <line x1="480" y1="524" x2="480" y2="548" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Step 5: JSON Response -->
+  <rect x="145" y="382" width="350" height="48" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="320" y="404" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">5. JSON Response → Browser</text>
+  <text x="320" y="420" text-anchor="middle" font-size="10" fill="#475569">{ output_audio_url: "/storage/output/&lt;uuid&gt;.wav" }</text>
+  <line x1="320" y1="430" x2="320" y2="456" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- Output -->
-  <rect x="305" y="548" width="350" height="38" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="480" y="568" text-anchor="middle" font-size="13" font-weight="700" fill="#14532d">→ Download im Browser</text>
-  <text x="480" y="582" text-anchor="middle" font-size="10" fill="#334155" font-family="monospace">GET /storage/output/&lt;uuid&gt;.wav</text>
+  <rect x="175" y="456" width="290" height="38" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="320" y="476" text-anchor="middle" font-size="13" font-weight="700" fill="#14532d">→ Wiedergabe / Download im Browser</text>
+  <text x="320" y="490" text-anchor="middle" font-size="10" fill="#334155" font-family="monospace">GET /storage/output/&lt;uuid&gt;.wav</text>
 </svg>
