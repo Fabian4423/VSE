@@ -159,7 +159,7 @@ function appendError(message) {
 async function loadVoices() {
   setStatus("Lade Voices...", "busy");
   try {
-    const res = await fetch("/api/voices");
+    const res = await fetch("api/voices");
     if (!res.ok) throw new Error(`${res.status}`);
     const data = await res.json();
     const voices = data.voices || [];
@@ -193,7 +193,7 @@ async function runAssistant() {
   appendThinking();
 
   try {
-    const res = await fetch("/api/run", {
+    const res = await fetch("api/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ voice_id: voiceId, text }),

@@ -83,7 +83,7 @@ def _chatterbox_health() -> bool:
 
 def _to_public_url(path: Path) -> str:
     rel = path.resolve().relative_to(STORAGE_ROOT)
-    return f"/storage/{rel.as_posix()}"
+    return f"storage/{rel.as_posix()}"
 
 
 def _json_response(handler: "LocalHandler", status: int, payload: dict) -> None:
@@ -95,21 +95,44 @@ def _json_response(handler: "LocalHandler", status: int, payload: dict) -> None:
     handler.wfile.write(data)
 
 
+BASE_PATH = "/vse"
+
+
 class LocalHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(FRONTEND_ROOT), **kwargs)
+
+    def _strip_base(self, path: str) -> str | None:
+        """Strip BASE_PATH prefix. Returns stripped path or None if not matching."""
+        if path == BASE_PATH or path == BASE_PATH + "/":
+            return "/"
+        if path.startswith(BASE_PATH + "/"):
+            return path[len(BASE_PATH):]
+        return None
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path
 
-        if path == "/api/voices":
+        # Redirect bare "/" to the base path
+        if path == "/":
+            self.send_response(302)
+            self.send_header("Location", BASE_PATH + "/")
+            self.end_headers()
+            return
+
+        stripped = self._strip_base(path)
+        if stripped is None:
+            _json_response(self, 404, {"detail": "Not found."})
+            return
+
+        if stripped == "/api/voices":
             voices = [{"voice_id": v} for v in CHATTERBOX_VOICES]
             _json_response(self, 200, {"voices": voices})
             return
 
-        if path.startswith("/storage/"):
-            rel = path.removeprefix("/storage/").strip("/")
+        if stripped.startswith("/storage/"):
+            rel = stripped.removeprefix("/storage/").strip("/")
             target = (STORAGE_ROOT / rel).resolve()
             try:
                 target.relative_to(STORAGE_ROOT)
@@ -129,11 +152,14 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.wfile.write(data)
             return
 
+        # Serve static frontend files with stripped path
+        self.path = stripped
         super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if parsed.path != "/api/run":
+        stripped = self._strip_base(parsed.path)
+        if stripped != "/api/run":
             _json_response(self, 404, {"detail": "Not found."})
             return
 
@@ -190,8 +216,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Local UI server – proxied to Chatterbox TTS."
     )
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=5500)
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=5174)
     args = parser.parse_args()
 
     if not FRONTEND_ROOT.exists():
