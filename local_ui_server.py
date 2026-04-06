@@ -42,13 +42,34 @@ STORAGE_ROOT = Path(
 OUTPUT_DIR = STORAGE_ROOT / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-CHATTERBOX_VOICES = [
+CHATTERBOX_VOICES_FALLBACK = [
     "Abigail", "Adrian", "Alexander", "Alice", "Austin", "Axel",
     "Connor", "Cora", "Elena", "Eli", "Emily", "Everett",
     "Gabriel", "Gianna", "Henry", "Ian", "Jade", "Jeremiah",
     "Jordan", "Julian", "Layla", "Leonardo", "Michael", "Miles",
     "Olivia", "Ryan", "Taylor", "Thomas",
 ]
+
+
+def _fetch_chatterbox_voices() -> list[str] | None:
+    """Fetch predefined voices from Chatterbox TTS. Returns None on failure."""
+    try:
+        req = _urllib_req.Request(f"{CHATTERBOX_URL}/get_predefined_voices")
+        with _urllib_req.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        if not isinstance(data, list) or not data:
+            return None
+        voices = []
+        for item in data:
+            if isinstance(item, str):
+                voices.append(item.removesuffix(".wav"))
+            elif isinstance(item, dict):
+                name = item.get("name") or item.get("voice_id") or item.get("display_name", "")
+                if name:
+                    voices.append(str(name).removesuffix(".wav"))
+        return voices or None
+    except Exception:
+        return None
 
 
 def _chatterbox_tts(text: str, voice_id: str) -> bytes:
@@ -127,7 +148,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
 
         if stripped == "/api/voices":
-            voices = [{"voice_id": v} for v in CHATTERBOX_VOICES]
+            voices_list = _fetch_chatterbox_voices() or CHATTERBOX_VOICES_FALLBACK
+            voices = [{"voice_id": v} for v in voices_list]
             _json_response(self, 200, {"voices": voices})
             return
 
@@ -185,10 +207,6 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if not text:
             _json_response(self, 422, {"detail": "text is required."})
             return
-        if voice_id not in CHATTERBOX_VOICES:
-            _json_response(self, 404, {"detail": f"Unbekannte Stimme: {voice_id}"})
-            return
-
         token = uuid.uuid4().hex
         output_path = OUTPUT_DIR / f"{token}.wav"
 

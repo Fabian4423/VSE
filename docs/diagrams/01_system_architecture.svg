@@ -38,14 +38,14 @@
   <text x="333" y="131" text-anchor="middle" font-size="11" fill="#334155">ThreadingHTTPServer</text>
   <text x="333" y="150" text-anchor="middle" font-size="11" fill="#334155">Frontend-Hosting</text>
   <text x="333" y="169" text-anchor="middle" font-size="11" fill="#334155">API-Proxy zu Chatterbox</text>
-  <text x="333" y="194" text-anchor="middle" font-size="10" fill="#64748b">Port 5500 · VM</text>
+  <text x="333" y="194" text-anchor="middle" font-size="10" fill="#64748b">Port 5174 · VM</text>
 
   <!-- Chatterbox TTS Box -->
   <rect x="492" y="78" width="210" height="148" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
   <text x="597" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Chatterbox TTS</text>
   <line x1="510" y1="110" x2="684" y2="110" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
   <text x="597" y="131" text-anchor="middle" font-size="11" fill="#334155">Text-to-Speech</text>
-  <text x="597" y="150" text-anchor="middle" font-size="11" fill="#334155">28 vordefinierte Stimmen</text>
+  <text x="597" y="150" text-anchor="middle" font-size="11" fill="#334155">Vordefinierte Stimmen</text>
   <text x="597" y="169" text-anchor="middle" font-size="11" fill="#334155">GPU-beschleunigt</text>
   <text x="597" y="194" text-anchor="middle" font-size="10" fill="#64748b">Port 8004 · Host</text>
 
@@ -69,6 +69,10 @@
   <rect x="432" y="102" width="62" height="15" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="0.8"/>
   <text x="463" y="113" text-anchor="middle" font-size="8" font-weight="600" fill="#065f46">HTTP/WAV</text>
 
+  <!-- Arrow: UI-Server → Chatterbox (voices query) -->
+  <line x1="434" y1="198" x2="492" y2="198" stroke="#16a34a" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arrow)"/>
+  <text x="463" y="214" text-anchor="middle" font-size="7" fill="#16a34a">GET /get_predefined_voices</text>
+
   <!-- Storage Box (VM) -->
   <rect x="232" y="278" width="202" height="148" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
   <text x="333" y="302" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">Storage (VM)</text>
@@ -83,7 +87,7 @@
   <rect x="492" y="278" width="210" height="148" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
   <text x="597" y="302" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Vordefinierte Stimmen</text>
   <line x1="510" y1="312" x2="684" y2="312" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
-  <text x="597" y="334" text-anchor="middle" font-size="11" fill="#334155">28 Stimmen verfügbar</text>
+  <text x="597" y="334" text-anchor="middle" font-size="11" fill="#334155">Dynamisch abgefragt</text>
   <text x="597" y="356" text-anchor="middle" font-size="10" fill="#64748b">Alexander, Elena, Michael ...</text>
   <text x="597" y="378" text-anchor="middle" font-size="10" fill="#64748b">Männlich &amp; Weiblich</text>
   <text x="597" y="398" text-anchor="middle" font-size="10" fill="#64748b">Keine Modelldateien nötig</text>

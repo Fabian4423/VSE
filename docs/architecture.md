@@ -122,7 +122,7 @@ def _load_env_file(path: Path) -> None:
 
 Das System stellt zwei HTTP-APIs bereit — eine auf der VM (öffentlich zugänglich), eine auf dem Host (intern).
 
-### VM: `local_ui_server.py` (Port 5500)
+### VM: `local_ui_server.py` (Port 5174)
 
 | Endpunkt | Methode | Funktion |
 |----------|---------|----------|
@@ -134,15 +134,29 @@ Das System stellt zwei HTTP-APIs bereit — eine auf der VM (öffentlich zugäng
 
 | Endpunkt | Methode | Funktion |
 |----------|---------|----------|
+| `/get_predefined_voices` | GET | Liefert die Liste verfügbarer vordefinierter Stimmen |
 | `/tts` | POST | Text → WAV-Audiodatei (binary) |
 
 ### Endpunkt: Verfügbare Stimmen
 
-Die 28 vordefinierten Chatterbox-Stimmen sind im UI-Server hinterlegt:
+Die verfügbaren Stimmen werden **dynamisch vom Chatterbox TTS-Service** abgefragt (`GET /get_predefined_voices`). Wird eine neue Stimme im Chatterbox-Service hinzugefügt, erscheint sie automatisch in der UI — ohne Anpassung des UI-Servers.
+
+Falls Chatterbox nicht erreichbar ist, greift der UI-Server auf eine statische Fallback-Liste zurück:
 
 ```python
 # local_ui_server.py
-CHATTERBOX_VOICES = [
+def _fetch_chatterbox_voices() -> list[str] | None:
+    """Fetch predefined voices from Chatterbox TTS. Returns None on failure."""
+    try:
+        req = _urllib_req.Request(f"{CHATTERBOX_URL}/get_predefined_voices")
+        with _urllib_req.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        ...
+        return voices or None
+    except Exception:
+        return None
+
+CHATTERBOX_VOICES_FALLBACK = [
     "Abigail", "Adrian", "Alexander", "Alice", "Austin", "Axel",
     "Connor", "Cora", "Elena", "Eli", "Emily", "Everett",
     "Gabriel", "Gianna", "Henry", "Ian", "Jade", "Jeremiah",
@@ -264,11 +278,9 @@ Der Audiodatenstrom zwischen Chatterbox und UI-Server läuft als **binäre WAV-D
 
 ## 8. Stimmenverwaltung
 
-Das System nutzt die 28 vordefinierten Stimmen des Chatterbox TTS-Service. Die Stimmen sind im UI-Server als Liste hinterlegt und werden über die `/api/voices`-API an das Frontend geliefert.
+Das System fragt die verfügbaren Stimmen **dynamisch** vom Chatterbox TTS-Service ab (`GET /get_predefined_voices`). Wird eine neue Stimme im Chatterbox-Service registriert, erscheint sie beim nächsten Laden der Seite automatisch im Frontend — ohne Änderung am UI-Server.
 
-Verfügbare Stimmen: Abigail, Adrian, Alexander, Alice, Austin, Axel, Connor, Cora, Elena, Eli, Emily, Everett, Gabriel, Gianna, Henry, Ian, Jade, Jeremiah, Jordan, Julian, Layla, Leonardo, Michael, Miles, Olivia, Ryan, Taylor, Thomas.
-
-Neue Stimmen werden durch Aktualisierung der `CHATTERBOX_VOICES`-Liste im UI-Server und des Chatterbox-Service hinzugefügt.
+Als Fallback enthält der UI-Server eine statische Liste mit 28 Stimmen (Abigail, Adrian, Alexander, …), die genutzt wird, wenn der Chatterbox-Service nicht erreichbar ist.
 
 ---
 
@@ -294,7 +306,7 @@ Gemäß den Anforderungen (NF-03, C-01, C-03) setzt die Anwendung auf **Netzwerk
 | **F-01** | Text-zu-Audio-Generierung | Erfüllt | `POST /api/run` → Chatterbox `/tts` → WAV |
 | **F-02** | Stimmauswahl | Erfüllt | 28 vordefinierte Chatterbox-Stimmen über `/api/voices` |
 | **F-03** | Download der Tondatei | Erfüllt | `GET /storage/*` liefert WAV-Dateien aus |
-| **F-04** | Erweiterbarkeit für neue Stimmen | Erfüllt | Neue Stimmen durch Erweiterung der Voice-Liste und des Chatterbox-Service |
+| **F-04** | Erweiterbarkeit für neue Stimmen | Erfüllt | Dynamische Abfrage vom Chatterbox-Service — neue Stimmen erscheinen automatisch |
 | **NF-01** | Usability | Erfüllt | Weboberfläche mit selbsterklärender Bedienung |
 | **NF-02** | Performance / Feedback | Erfüllt | Button-Disable und Ladeanimation während Generierung |
 | **NF-03** | Zugriffsbeschränkung | Erfüllt | Localhost-Bindung + VPN + Path-Traversal-Schutz |

@@ -9,9 +9,9 @@ Es spricht ausschließlich mit der lokalen API desselben Prozesses:
 
 ```bash
 cd /path/to/VSE
-python3 local_ui_server.py --host 127.0.0.1 --port 5500
+python3 local_ui_server.py --host 127.0.0.1 --port 5174
 ```
 
-Dann im Browser öffnen: `http://127.0.0.1:5500`
+Dann im Browser öffnen: `http://127.0.0.1:5174`
 
 Hinweis: Start/Konfiguration ist zentral in der Root-Doku beschrieben: `README.md`.

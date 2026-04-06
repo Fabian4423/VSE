@@ -12,7 +12,7 @@ Der UI-Server stellt das Frontend bereit und leitet TTS-Anfragen an den Chatterb
 
 | Prozess | Läuft auf | Port | Aufgabe |
 |---------|-----------|------|---------|
-| `local_ui_server.py` | VM | 5500 | Frontend ausliefern, API-Proxy zu Chatterbox |
+| `local_ui_server.py` | VM | 5174 | Frontend ausliefern, API-Proxy zu Chatterbox |
 | Chatterbox TTS | Host (GPU) | 8004 | Text-to-Speech mit vordefinierten Stimmen |
 
 ---
@@ -43,9 +43,7 @@ STORAGE_ROOT=/pfad/zu/VSE/backend/storage
 
 ### 3. Verfügbare Stimmen
 
-28 vordefinierte Stimmen sind sofort verfügbar:
-
-Abigail, Adrian, Alexander, Alice, Austin, Axel, Connor, Cora, Elena, Eli, Emily, Everett, Gabriel, Gianna, Henry, Ian, Jade, Jeremiah, Jordan, Julian, Layla, Leonardo, Michael, Miles, Olivia, Ryan, Taylor, Thomas
+Die verfügbaren Stimmen werden **dynamisch vom Chatterbox-Service** abgefragt. Neue Stimmen erscheinen automatisch in der UI, sobald sie im Chatterbox-Service registriert sind.
 
 ---
 
@@ -56,7 +54,7 @@ Abigail, Adrian, Alexander, Alice, Austin, Axel, Connor, Cora, Elena, Eli, Emily
 python3 local_ui_server.py
 ```
 
-Dann im Browser öffnen: `http://127.0.0.1:5500`
+Dann im Browser öffnen: `http://127.0.0.1:5174`
 
 ---
 
@@ -64,7 +62,7 @@ Dann im Browser öffnen: `http://127.0.0.1:5500`
 
 ```bash
 # UI-Server erreichbar?
-curl http://localhost:5500/api/voices
+curl http://localhost:5174/api/voices
 
 # Chatterbox direkt testen:
 curl -X POST "http://192.168.100.64:8004/tts" \
