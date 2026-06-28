@@ -3,6 +3,8 @@ const voiceIdEl       = document.getElementById("voiceId");
 const textInputEl     = document.getElementById("textInput");
 const runBtnEl        = document.getElementById("runBtn");
 const refreshVoicesEl = document.getElementById("refreshVoices");
+const previewVoiceEl  = document.getElementById("previewVoice");
+const previewAudioEl  = document.getElementById("previewAudio");
 const statusTextEl    = document.getElementById("statusText");
 const statusDotEl     = document.querySelector(".status-dot");
 const chatAreaEl      = document.getElementById("chatArea");
@@ -238,8 +240,37 @@ function friendlyError(err) {
   return msg;
 }
 
+// ── Voice preview ─────────────────────────────────────────
+async function previewVoice() {
+  const voiceId = voiceIdEl.value;
+  if (!voiceId) { setStatus("Keine Stimme ausgewaehlt.", "error"); return; }
+
+  if (!previewAudioEl.paused) {
+    previewAudioEl.pause();
+    previewAudioEl.currentTime = 0;
+    setStatus("Preview gestoppt.", "ready");
+    return;
+  }
+
+  previewVoiceEl.disabled = true;
+  setStatus(`Lade Preview: ${voiceId}...`, "busy");
+  try {
+    const url = `api/voices/${encodeURIComponent(voiceId)}/preview`;
+    previewAudioEl.src = url;
+    await previewAudioEl.play();
+    setStatus(`Preview: ${voiceId}`, "ready");
+  } catch (err) {
+    setStatus(`Preview fehlgeschlagen: ${friendlyError(err)}`, "error");
+  } finally {
+    previewVoiceEl.disabled = false;
+  }
+}
+
+previewAudioEl.addEventListener("ended", () => setStatus("Bereit", "ready"));
+
 // ── Event listeners ───────────────────────────────────────
 refreshVoicesEl.addEventListener("click", () => loadVoices());
+previewVoiceEl.addEventListener("click", () => previewVoice());
 runBtnEl.addEventListener("click", () => runAssistant().catch((err) => appendError(friendlyError(err))));
 sidebarToggleEl.addEventListener("click", toggleSidebar);
 openSidebarEl.addEventListener("click", toggleSidebar);

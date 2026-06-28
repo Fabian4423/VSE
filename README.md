@@ -91,6 +91,7 @@ API-Endpunkte für die UI:
 | Endpunkt | Methode | Beschreibung |
 |----------|---------|--------------|
 | `/api/voices` | GET | Verfügbare Stimmen |
+| `/api/voices/<id>/preview` | GET | Kurzes WAV-Sample der Stimme (gecached unter `storage/previews/`) |
 | `/api/run` | POST | Audio erzeugen (Text-Modus) |
 | `/storage/*` | GET | Generierte Audiodateien abrufen |
 

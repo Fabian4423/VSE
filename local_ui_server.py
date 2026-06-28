@@ -47,6 +47,14 @@ STORAGE_ROOT = Path(
 OUTPUT_DIR = STORAGE_ROOT / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+PREVIEW_DIR = STORAGE_ROOT / "previews"
+PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+PREVIEW_TEXT = os.getenv(
+    "CHATTERBOX_PREVIEW_TEXT",
+    "Hello, this is a short preview of how I sound.",
+)
+_VOICE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
 CHATTERBOX_VOICES_FALLBACK = [
     "Abigail", "Adrian", "Alexander", "Alice", "Austin", "Axel",
     "Connor", "Cora", "Elena", "Eli", "Emily", "Everett",
@@ -251,6 +259,31 @@ class LocalHandler(SimpleHTTPRequestHandler):
             voices_list = _fetch_chatterbox_voices() or CHATTERBOX_VOICES_FALLBACK
             voices = [{"voice_id": v} for v in voices_list]
             _json_response(self, 200, {"voices": voices})
+            return
+
+        if stripped.startswith("/api/voices/") and stripped.endswith("/preview"):
+            voice_id = stripped[len("/api/voices/"):-len("/preview")]
+            if not _VOICE_ID_RE.match(voice_id):
+                _json_response(self, 422, {"detail": "Invalid voice_id."})
+                return
+            cache_path = PREVIEW_DIR / f"{voice_id}.wav"
+            if not cache_path.exists():
+                try:
+                    audio_bytes = _chatterbox_tts(PREVIEW_TEXT, voice_id)
+                    cache_path.write_bytes(audio_bytes)
+                except URLError as exc:
+                    _json_response(self, 502, {"detail": f"Chatterbox TTS nicht erreichbar: {exc}"})
+                    return
+                except Exception as exc:
+                    _json_response(self, 500, {"detail": str(exc)})
+                    return
+            data = cache_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(data)
             return
 
         if stripped.startswith("/storage/"):

@@ -127,6 +127,7 @@ Das System stellt zwei HTTP-APIs bereit — eine auf der VM (öffentlich zugäng
 | Endpunkt | Methode | Funktion |
 |----------|---------|----------|
 | `/api/voices` | GET | Liefert die 28 verfügbaren Chatterbox-Stimmen |
+| `/api/voices/<id>/preview` | GET | Kurzes WAV-Sample der Stimme (gecached unter `storage/previews/`) |
 | `/api/run` | POST | Startet TTS-Generierung via Chatterbox |
 | `/storage/*` | GET | Liefert generierte Audiodateien aus |
 
@@ -203,6 +204,12 @@ Der UI-Server sendet folgendes Format an den Chatterbox-Service:
 
 Die Antwort ist eine **binäre WAV-Datei** (kein JSON). Der UI-Server speichert diese direkt als Datei.
 
+### Endpunkt: Voice-Preview (`GET /api/voices/<id>/preview`)
+
+Liefert ein kurzes WAV-Sample der gewählten Stimme zur Vorhör-Funktion in der UI. Beim ersten Aufruf pro Stimme synthetisiert der UI-Server einen festen englischen Satz (`CHATTERBOX_PREVIEW_TEXT`, Default: `"Hello, this is a short preview of how I sound."`) über Chatterbox und cached das Ergebnis unter `storage/previews/<id>.wav`. Folgeaufrufe liefern direkt aus dem Cache (Antwort < 50 ms).
+
+Die `voice_id` wird gegen `^[A-Za-z0-9_-]{1,64}$` validiert, bevor sie als Dateiname verwendet wird — verhindert Path-Traversal und ungültige Filesystem-Zeichen.
+
 ### Endpunkt: Dateiauslieferung (`GET /storage/*`)
 
 Der Endpunkt liefert generierte Audiodateien aus und enthält einen Path-Traversal-Schutz:
@@ -250,11 +257,17 @@ def _chatterbox_tts(text: str, voice_id: str) -> bytes:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with _urllib_req.urlopen(req, timeout=120) as resp:
+    with _urllib_req.urlopen(req, timeout=CHATTERBOX_TIMEOUT_SECONDS) as resp:
         return resp.read()
 ```
 
 Im Vergleich zur früheren Architektur entfällt die CLI-Bridge: Chatterbox TTS ist ein eigenständiger HTTP-Service, der direkt angesprochen wird — ohne Subprozesse, temporäre Dateien oder Base64-Kodierung.
+
+### Chunking langer Eingaben
+
+Für längere Texte (z. B. >500 Zeichen / mehrere Minuten Audio) würde ein einzelner Chatterbox-Request schnell den Timeout überschreiten. Der UI-Server zerlegt deshalb den Eingabetext an Satzgrenzen in Chunks (Default ≤ 500 Zeichen, konfigurierbar via `CHATTERBOX_MAX_CHUNK_CHARS`), synthetisiert jeden Chunk einzeln und führt die zurückgegebenen WAVs anschließend über Pythons `wave`-Modul wieder zusammen (Sample-Rate, Channels und Bittiefe werden vom ersten Chunk übernommen).
+
+Reicht die Satzgrenzen-Trennung nicht aus (einzelner Satz zu lang), wird sekundär an Kommata, tertiär an Wortgrenzen gesplittet.
 
 ---
 
