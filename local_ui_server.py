@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import mimetypes
 import os
+import re
 import sys
 import uuid
+import wave
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib import request as _urllib_req
@@ -35,6 +38,8 @@ def _load_env_file(path: Path) -> None:
 _load_env_file(BACKEND_ROOT / ".env")
 
 CHATTERBOX_URL = os.getenv("CHATTERBOX_URL", "http://192.168.100.64:8004").rstrip("/")
+CHATTERBOX_TIMEOUT_SECONDS = int(os.getenv("CHATTERBOX_TIMEOUT_SECONDS", "300"))
+MAX_CHUNK_CHARS = int(os.getenv("CHATTERBOX_MAX_CHUNK_CHARS", "500"))
 STORAGE_ROOT = Path(
     os.getenv("STORAGE_ROOT", str(BACKEND_ROOT / "storage"))
 ).expanduser().resolve()
@@ -85,8 +90,103 @@ def _chatterbox_tts(text: str, voice_id: str) -> bytes:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with _urllib_req.urlopen(req, timeout=120) as resp:
+    with _urllib_req.urlopen(req, timeout=CHATTERBOX_TIMEOUT_SECONDS) as resp:
         return resp.read()
+
+
+def _chunk_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
+    """Split text at sentence boundaries; fall back to commas / words if needed."""
+    text = text.strip()
+    if len(text) <= max_chars:
+        return [text] if text else []
+
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if len(sentence) > max_chars:
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.extend(_force_split(sentence, max_chars))
+            continue
+        candidate = f"{current} {sentence}".strip() if current else sentence
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            chunks.append(current)
+            current = sentence
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _force_split(text: str, max_chars: int) -> list[str]:
+    """Hard-split a too-long fragment at commas, then word boundaries."""
+    chunks: list[str] = []
+    current = ""
+    for piece in re.split(r"(?<=,)\s+", text):
+        if len(piece) > max_chars:
+            if current:
+                chunks.append(current)
+                current = ""
+            for word in piece.split():
+                candidate = f"{current} {word}".strip() if current else word
+                if len(candidate) <= max_chars:
+                    current = candidate
+                else:
+                    if current:
+                        chunks.append(current)
+                    current = word
+            continue
+        candidate = f"{current} {piece}".strip() if current else piece
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            chunks.append(current)
+            current = piece
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _concat_wavs(parts: list[bytes]) -> bytes:
+    """Concatenate WAV buffers, taking sample params from the first part."""
+    if not parts:
+        return b""
+    if len(parts) == 1:
+        return parts[0]
+
+    output = io.BytesIO()
+    writer: wave.Wave_write | None = None
+    try:
+        for chunk in parts:
+            with wave.open(io.BytesIO(chunk), "rb") as reader:
+                if writer is None:
+                    writer = wave.open(output, "wb")
+                    writer.setnchannels(reader.getnchannels())
+                    writer.setsampwidth(reader.getsampwidth())
+                    writer.setframerate(reader.getframerate())
+                writer.writeframes(reader.readframes(reader.getnframes()))
+    finally:
+        if writer is not None:
+            writer.close()
+    return output.getvalue()
+
+
+def _synthesize(text: str, voice_id: str) -> bytes:
+    chunks = _chunk_text(text)
+    if not chunks:
+        raise ValueError("Empty text after chunking.")
+    print(f"[tts] voice={voice_id} chunks={len(chunks)} total_chars={len(text)}")
+    wav_parts = []
+    for index, chunk in enumerate(chunks, 1):
+        print(f"[tts]   chunk {index}/{len(chunks)} ({len(chunk)} chars)")
+        wav_parts.append(_chatterbox_tts(chunk, voice_id))
+    return _concat_wavs(wav_parts)
 
 
 def _chatterbox_health() -> bool:
@@ -211,7 +311,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
         output_path = OUTPUT_DIR / f"{token}.wav"
 
         try:
-            audio_bytes = _chatterbox_tts(text, voice_id)
+            audio_bytes = _synthesize(text, voice_id)
             output_path.write_bytes(audio_bytes)
         except URLError as exc:
             _json_response(self, 502, {"detail": f"Chatterbox TTS nicht erreichbar: {exc}"})
