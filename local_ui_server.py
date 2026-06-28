@@ -231,6 +231,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(FRONTEND_ROOT), **kwargs)
 
+    def end_headers(self) -> None:  # noqa: N802
+        # Prevent the browser from serving a stale frontend after a git pull.
+        if getattr(self, "_no_cache", False):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        super().end_headers()
+
     def _strip_base(self, path: str) -> str | None:
         """Strip BASE_PATH prefix. Returns stripped path or None if not matching."""
         if path == BASE_PATH or path == BASE_PATH + "/":
@@ -308,6 +314,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
 
         # Serve static frontend files with stripped path
+        self._no_cache = True
         self.path = stripped
         super().do_GET()
 
